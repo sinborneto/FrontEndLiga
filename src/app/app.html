@@ -112,103 +112,7 @@
         </div>
         <div class="search-bottom">
           <p id="search-help">Inclua o número e a edição para encontrar a versão exata.</p>
-          <button
-            class="filter-toggle"
-            type="button"
-            (click)="advanced.set(!advanced())"
-            [attr.aria-expanded]="advanced()"
-            aria-controls="advanced-filters"
-          >
-            <svg><use href="#filter" /></svg> Filtros {{ advanced() ? '−' : '+' }}
-          </button>
         </div>
-        @if (advanced()) {
-          <div class="advanced-grid" id="advanced-filters">
-            <label for="minPrice"
-              >Preço mínimo (R$)<input
-                id="minPrice"
-                name="minPrice"
-                type="number"
-                min="0"
-                step="0.01"
-                [(ngModel)]="query.minPrice"
-                placeholder="0,00"
-            /></label>
-            <label for="maxPrice"
-              >Preço máximo (R$)<input
-                id="maxPrice"
-                name="maxPrice"
-                type="number"
-                min="0"
-                step="0.01"
-                [(ngModel)]="query.maxPrice"
-                placeholder="Sem limite"
-            /></label>
-            <label for="minStock"
-              >Estoque mínimo<input
-                id="minStock"
-                name="minStock"
-                type="number"
-                min="0"
-                step="1"
-                [(ngModel)]="query.minStock"
-                placeholder="Qualquer"
-            /></label>
-            <label for="state"
-              >Estado<select id="state" name="state" [(ngModel)]="query.state">
-                <option value="">Todos os estados</option>
-                @for (state of states; track state) {
-                  <option [value]="state">{{ state }}</option>
-                }
-              </select></label
-            >
-            <div class="quality-field">
-              <span id="quality-label">Condição</span>
-              <details
-                #qualitySelect
-                class="quality-select"
-                (keydown.escape)="
-                  qualitySelect.open = false; qualitySummary.focus(); $event.stopPropagation()
-                "
-              >
-                <summary #qualitySummary aria-labelledby="quality-label quality-value">
-                  <span id="quality-value">{{
-                    query.quality.length ? query.quality.join(', ') : 'Todas as condições'
-                  }}</span
-                  ><span aria-hidden="true">⌄</span>
-                </summary>
-                <div class="quality-options" role="group" aria-label="Condições da carta">
-                  @for (quality of qualities; track quality) {
-                    <label
-                      ><input
-                        type="checkbox"
-                        [checked]="query.quality.includes(quality)"
-                        (change)="toggleQuality(quality)"
-                        [attr.aria-label]="'Condição ' + quality"
-                      /><span>{{ quality }}</span></label
-                    >
-                  }
-                  <p>Nenhuma marcada = todas</p>
-                </div>
-              </details>
-            </div>
-            <label for="finish"
-              >Acabamento<input
-                id="finish"
-                name="finish"
-                [(ngModel)]="query.finish"
-                placeholder="Ex.: Foil"
-            /></label>
-            <label for="language"
-              >Idioma<input
-                id="language"
-                name="language"
-                [(ngModel)]="query.language"
-                placeholder="Ex.: Português"
-            /></label>
-            <button type="button" class="clear-button" (click)="clear()">Limpar busca</button>
-          </div>
-        }
       </fieldset>
       <p id="validation" class="validation" role="alert">{{ validation() }}</p>
     </form>
@@ -407,6 +311,114 @@
           }
         </div>
       }
+      <details class="offer-filters" aria-labelledby="offer-filters-heading">
+        <summary class="offer-filters-heading">
+          <svg aria-hidden="true"><use href="#filter" /></svg>
+          <div>
+            <h3 id="offer-filters-heading">Filtrar ofertas</h3>
+            <p>Refine os resultados por preço, estoque e características da carta.</p>
+          </div>
+          <span class="filter-expand-action"
+            ><span class="when-closed">Mostrar filtros +</span
+            ><span class="when-open">Ocultar filtros −</span></span
+          >
+        </summary>
+        <form (ngSubmit)="search()">
+          <fieldset [disabled]="loading()">
+            <div class="advanced-grid" id="advanced-filters">
+              <label for="minPrice"
+                >Preço mínimo (R$)<input
+                  id="minPrice"
+                  name="minPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [(ngModel)]="query.minPrice"
+                  placeholder="0,00"
+              /></label>
+              <label for="maxPrice"
+                >Preço máximo (R$)<input
+                  id="maxPrice"
+                  name="maxPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [(ngModel)]="query.maxPrice"
+                  placeholder="Sem limite"
+              /></label>
+              <label for="minStock"
+                >Estoque mínimo<input
+                  id="minStock"
+                  name="minStock"
+                  type="number"
+                  min="0"
+                  step="1"
+                  [(ngModel)]="query.minStock"
+                  placeholder="Qualquer"
+              /></label>
+              <label for="state"
+                >Estado<select id="state" name="state" [(ngModel)]="query.state">
+                  <option value="">Todos os estados</option>
+                  @for (state of states; track state) {
+                    <option [value]="state">{{ state }}</option>
+                  }
+                </select></label
+              >
+              <div class="quality-field">
+                <span id="quality-label">Condição</span>
+                <details
+                  #qualitySelect
+                  class="quality-select"
+                  (keydown.escape)="
+                    qualitySelect.open = false; qualitySummary.focus(); $event.stopPropagation()
+                  "
+                >
+                  <summary #qualitySummary aria-labelledby="quality-label quality-value">
+                    <span id="quality-value">{{
+                      query.quality.length ? query.quality.join(', ') : 'Todas as condições'
+                    }}</span
+                    ><span aria-hidden="true">⌄</span>
+                  </summary>
+                  <div class="quality-options" role="group" aria-label="Condições da carta">
+                    @for (quality of qualities; track quality) {
+                      <label
+                        ><input
+                          type="checkbox"
+                          [checked]="query.quality.includes(quality)"
+                          (change)="toggleQuality(quality)"
+                          [attr.aria-label]="'Condição ' + quality"
+                        /><span>{{ quality }}</span></label
+                      >
+                    }
+                    <p>Nenhuma marcada = todas</p>
+                  </div>
+                </details>
+              </div>
+              <label for="finish"
+                >Acabamento<input
+                  id="finish"
+                  name="finish"
+                  [(ngModel)]="query.finish"
+                  placeholder="Ex.: Foil"
+              /></label>
+              <label for="language"
+                >Idioma<input
+                  id="language"
+                  name="language"
+                  [(ngModel)]="query.language"
+                  placeholder="Ex.: Português"
+              /></label>
+              <button type="button" class="clear-button" (click)="clear()">Limpar busca</button>
+            </div>
+          </fieldset>
+          <div class="filter-actions">
+            <p class="validation" role="alert">{{ validation() }}</p>
+            <button class="primary-button" type="submit">
+              Aplicar filtros <svg aria-hidden="true"><use href="#arrow" /></svg>
+            </button>
+          </div>
+        </form>
+      </details>
       <div class="table-panel">
         <div class="table-toolbar">
           <h3>
@@ -516,6 +528,16 @@
                         ></a>
                       } @else {
                         <span class="unavailable">Sem link</span>
+                      }
+                      @if (safeUrl(offer.storeUrl); as storeUrl) {
+                        <a
+                          class="offer-link direct-store-link"
+                          [href]="storeUrl"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          [attr.aria-label]="'Ir à loja ' + (offer.store || '')"
+                          >Ir à loja <svg aria-hidden="true"><use href="#external" /></svg
+                        ></a>
                       }
                     </td>
                   </tr>

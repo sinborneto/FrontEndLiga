@@ -33,7 +33,8 @@ Se a porta estiver ocupada, use `npm start -- --port 4201`.
 
 - A API testa numerações com 1, 2 e 3 dígitos, ignorando zeros à esquerda nas comparações. Quando isso encontra edições diferentes, a tela apresenta botões para escolher a carta correta e preserva os demais filtros.
 
-- Seletor de condição com múltiplas escolhas: M, NM, SP, MP, HP e D. Nenhuma marcada inclui todas; a seleção é aplicada ao clicar em “Buscar ofertas”.
+- Card de filtros recolhido por padrão, abaixo dos resumos da carta e imediatamente acima de “Ofertas disponíveis”. “Mostrar filtros” expande e “Ocultar filtros” recolhe, preservando os valores. O botão “Aplicar filtros” atualiza a consulta. Seletor de condição com múltiplas escolhas: M, NM, SP, MP, HP e D. Nenhuma marcada inclui todas.
+- Dois links por oferta quando disponíveis: “Ver oferta” na vitrine da Liga e “Ir à loja”, que usa o redirecionamento oficial para o produto no site da loja. Ambos abrem em outra aba.
 
 - Imagem da carta identificada pela API, com prévia maior e ampliação ao clicar, além do botão “Ver carta na Liga Pokémon” ao lado do nome. A visualização ampliada fecha pelo botão, Esc ou clique fora da janela. A imagem tem descrição acessível e fallback quando ausente ou com erro. O backend deve estar atualizado para retornar `card.imageUrl` e `card.url`.
 

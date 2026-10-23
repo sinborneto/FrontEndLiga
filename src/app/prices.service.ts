@@ -28,6 +28,7 @@ export interface Offer {
   finish: string | null;
   language: string | null;
   url: string | null;
+  storeUrl?: string | null;
 }
 export interface SearchResult {
   card: {

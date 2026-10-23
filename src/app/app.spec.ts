@@ -52,6 +52,20 @@ describe('Busca de ofertas', () => {
   });
   afterEach(() => http.verify());
 
+  it('mantém o link da Liga e acrescenta o link para a loja em outra aba', () => {
+    app.result.set(result([{ ...offer(10), storeUrl: 'https://www.ligapokemon.com.br/b/?p=e1' }]));
+    fixture.detectChanges();
+    const links = fixture.nativeElement.querySelectorAll(
+      'tbody .offer-link',
+    ) as NodeListOf<HTMLAnchorElement>;
+    expect(links).toHaveLength(2);
+    expect(links[0].href).toContain('view=mp/showcase/home');
+    expect(links[1].href).toBe('https://www.ligapokemon.com.br/b/?p=e1');
+    expect(links[1].textContent).toContain('Ir à loja');
+    expect(links[1].target).toBe('_blank');
+    expect(links[1].rel).toContain('noopener');
+  });
+
   it('exibe o logo da loja e usa iniciais se o arquivo falhar', () => {
     const withLogo = {
       ...offer(10),
@@ -103,7 +117,7 @@ describe('Busca de ofertas', () => {
   });
 
   it('fecha as condições ao clicar fora ou pressionar Esc e preserva a seleção', () => {
-    app.advanced.set(true);
+    app.result.set(result([]));
     fixture.detectChanges();
     const details = fixture.nativeElement.querySelector('.quality-select') as HTMLDetailsElement;
     details.open = true;
@@ -122,7 +136,7 @@ describe('Busca de ofertas', () => {
   });
 
   it('permite selecionar várias condições, envia a união e limpa a seleção', () => {
-    app.advanced.set(true);
+    app.result.set(result([]));
     fixture.detectChanges();
     const inputs = fixture.nativeElement.querySelectorAll(
       '.quality-options input',
@@ -132,7 +146,9 @@ describe('Busca de ofertas', () => {
     inputs[4].click();
     fixture.detectChanges();
     expect(app.query.quality).toEqual(['NM', 'HP']);
-    expect(fixture.nativeElement.querySelector('summary').textContent).toContain('NM, HP');
+    expect(fixture.nativeElement.querySelector('.quality-select summary').textContent).toContain(
+      'NM, HP',
+    );
     app.query.card = 'Pikachu';
     app.search();
     const request = http.expectOne((r) => r.url === '/api/cards/prices');

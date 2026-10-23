@@ -33,7 +33,6 @@ export class App {
   readonly sort = signal('price_asc');
   readonly page = signal(1);
   readonly pageSize = 20;
-  readonly advanced = signal(false);
   readonly qualities = ['M', 'NM', 'SP', 'MP', 'HP', 'D'];
   toggleQuality(quality: string): void {
     this.query.quality = this.query.quality.includes(quality)
