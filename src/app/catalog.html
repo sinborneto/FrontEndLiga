@@ -1,0 +1,300 @@
+<main>
+  <div class="breadcrumb">
+    <a routerLink="/edicoes">POKÉMON TCG</a><span>/</span> EXPLORAR EDIÇÕES
+    @if (data(); as result) {
+      <span>/</span> {{ result.edition.code }}
+    }
+  </div>
+  @if (!data()) {
+    <section class="intro">
+      <div class="eyebrow">CADA EDIÇÃO, UMA NOVA DESCOBERTA.</div>
+      <h1>Explore as edições.<br /><span>Encontre sua próxima carta.</span></h1>
+      <p>Navegue pelas coleções de Pokémon e descubra as cartas de cada edição.</p>
+    </section>
+  }
+  @if (loading()) {
+    <section class="status" role="status">
+      <span class="spinner"></span>
+      <h2>Carregando {{ routeLabel() }}…</h2>
+      <p>Consultando o catálogo da Liga Pokémon.</p>
+    </section>
+  } @else if (error()) {
+    <section class="status" role="alert">
+      <h2>{{ error() }}</h2>
+      <button class="primary" (click)="reload()">Tentar novamente</button>
+      <a routerLink="/edicoes">Voltar às edições</a>
+    </section>
+  } @else if (data(); as result) {
+    <a class="back" routerLink="/edicoes">← Todas as edições</a>
+    <section class="edition-heading">
+      @if (result.edition.imageUrl && !failedImages().has('edition')) {
+        <img
+          class="edition-icon"
+          [src]="result.edition.imageUrl"
+          alt=""
+          (error)="imageFailed('edition')"
+        />
+      }
+      <div>
+        <div class="eyebrow">EXPLORE A COLEÇÃO</div>
+        <h1>{{ result.edition.name }}</h1>
+        <p>
+          {{ result.edition.code }} <span>·</span> {{ result.cards.length }} cartas
+          @if (result.edition.releasedAt) {
+            <span>·</span> {{ result.edition.releasedAt | date: 'dd/MM/yyyy' }}
+          }
+        </p>
+      </div>
+      <a class="secondary" [href]="result.edition.url" target="_blank" rel="noopener noreferrer"
+        >Ver edição na Liga ↗</a
+      >
+    </section>
+    <div class="catalog-layout">
+      <aside class="filters" aria-label="Filtros das cartas">
+        <details open>
+          <summary>
+            Filtrar cartas
+            <span>{{ activeFilters() ? activeFilters() + ' ativos' : 'Refine a coleção' }}</span>
+          </summary>
+          <label class="search-label"
+            >Nome ou número<input
+              type="search"
+              placeholder="Ex.: Pikachu ou 025/128"
+              [ngModel]="name()"
+              (ngModelChange)="name.set($event); limit.set(24)"
+          /></label>
+          @for (
+            facet of [
+              { key: 'rarities', label: 'Raridade', options: facets().rarities },
+              { key: 'energies', label: 'Tipo / energia', options: facets().energies },
+            ];
+            track facet.key
+          ) {
+            @if (facet.options.length) {
+              <fieldset>
+                <legend>{{ facet.label }}</legend>
+                @for (option of facet.options; track option.label) {
+                  <label class="facet"
+                    ><input
+                      type="checkbox"
+                      [checked]="
+                        facet.key === 'rarities'
+                          ? rarities().includes(option.label)
+                          : energies().includes(option.label)
+                      "
+                      (change)="
+                        toggle(facet.key === 'rarities' ? 'rarities' : 'energies', option.label)
+                      "
+                    /><span>{{ option.label }}</span
+                    ><small>{{ option.count }}</small></label
+                  >
+                }
+              </fieldset>
+            }
+          }
+          <button class="clear" (click)="clearFilters()" [disabled]="!activeFilters()">
+            Limpar filtros
+          </button>
+        </details>
+      </aside>
+      <section class="cards-section" aria-label="Cartas da edição">
+        <div class="cards-toolbar">
+          <p>
+            <strong>{{ filteredCards().length }}</strong> de {{ result.cards.length }} cartas
+          </p>
+          <div class="toolbar-controls">
+            <label
+              >Ordenar por<select [ngModel]="order()" (ngModelChange)="order.set($event)">
+                <option value="name">Nome A–Z</option>
+                <option value="number">Número da carta</option>
+                <option value="price">Menor preço</option>
+              </select></label
+            >
+            <div class="view-controls" aria-label="Visualização">
+              <button
+                aria-label="Visualizar em grade"
+                [attr.aria-pressed]="view() === 'grid'"
+                (click)="view.set('grid')"
+              >
+                ▦</button
+              ><button
+                aria-label="Visualizar em lista"
+                [attr.aria-pressed]="view() === 'list'"
+                (click)="view.set('list')"
+              >
+                ☰
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="cards-grid" [class.list]="view() === 'list'">
+          @for (card of visibleCards(); track card.id) {
+            <article class="card">
+              <a
+                class="card-image"
+                [routerLink]="['/']"
+                [queryParams]="offerQuery(card)"
+                [attr.aria-label]="'Ver ofertas de ' + card.name + ' ' + card.number"
+              >
+                @if (card.imageUrl && !failedImages().has(card.id)) {
+                  <img
+                    [src]="card.imageUrl"
+                    [alt]="card.name + ' (' + card.number + ')'"
+                    loading="lazy"
+                    (error)="imageFailed(card.id)"
+                  />
+                } @else {
+                  <span class="missing-image">Imagem indisponível</span>
+                }
+              </a>
+              <div class="card-info">
+                <p class="card-number">
+                  {{ result.edition.code }} <span>·</span> {{ card.number }}
+                </p>
+                <h2>{{ card.name }}</h2>
+                <p class="card-attributes">
+                  {{ card.rarity || 'Raridade não informada' }}
+                  @if (card.energies.length) {
+                    <span>·</span> {{ card.energies.join(' / ') }}
+                  }
+                </p>
+                <p class="price">
+                  @if (card.minPrice !== null) {
+                    <small>A partir de</small>
+                    <strong>{{
+                      card.minPrice | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+                    }}</strong>
+                  } @else {
+                    <small>Preço não informado</small>
+                  }
+                </p>
+                <div class="card-actions">
+                  <a class="primary" routerLink="/" [queryParams]="offerQuery(card)"
+                    >Ver ofertas →</a
+                  ><a
+                    [href]="card.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    [attr.aria-label]="'Ver ' + card.name + ' na Liga'"
+                    >Liga ↗</a
+                  >
+                </div>
+              </div>
+            </article>
+          } @empty {
+            <div class="empty">
+              <h2>Nenhuma carta encontrada</h2>
+              <p>Tente outro nome ou ajuste os filtros.</p>
+              <button class="secondary" (click)="clearFilters()">Limpar filtros</button>
+            </div>
+          }
+        </div>
+        @if (visibleCards().length < filteredCards().length) {
+          <button class="load-more" (click)="limit.update(addPage)">
+            Mostrar mais cartas
+            <span>{{ visibleCards().length }} / {{ filteredCards().length }}</span>
+          </button>
+        }
+        <p class="note">
+          Dados da Liga Pokémon · Preços podem mudar. Consulte as ofertas para conferir estoque e
+          condições.
+        </p>
+      </section>
+    </div>
+  } @else {
+    <section class="edition-tools" aria-label="Buscar edições">
+      <label class="edition-search"
+        >Procurar edição<input
+          type="search"
+          placeholder="Nome ou sigla da edição…"
+          [ngModel]="editionSearch()"
+          (ngModelChange)="editionSearch.set($event)"
+      /></label>
+      <label
+        >Ano<select [ngModel]="year()" (ngModelChange)="year.set($event)">
+          <option value="">Todos os anos</option>
+          @for (y of years(); track y) {
+            <option [value]="y">{{ y || 'Sem data' }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Visualizar por<select
+          [ngModel]="editionOrder()"
+          (ngModelChange)="editionOrder.set($event)"
+        >
+          <option value="year">Ano de lançamento</option>
+          <option value="name">Nome da edição</option>
+        </select></label
+      >
+      <label
+        >Idioma dos nomes<select [ngModel]="language()" (ngModelChange)="language.set($event)">
+          <option value="pt">Português</option>
+          <option value="en">Inglês</option>
+        </select></label
+      >
+    </section>
+    <div class="results-label">
+      {{ matchingEditions().length }} edições encontradas
+      <span>Escolha uma edição para explorar suas cartas</span>
+    </div>
+    <div class="edition-groups">
+      @for (group of groups(); track group.key) {
+        <section class="year-group">
+          <div class="year-heading">
+            <h2>{{ group.title }}</h2>
+            <span>{{ group.editions.length }} edições</span>
+          </div>
+          <div class="edition-rows">
+            @for (edition of groupRows(group); track edition.id) {
+              <a
+                class="edition-row"
+                [class.subset]="edition.parentId && editionOrder() === 'year'"
+                [routerLink]="['/edicoes', edition.id]"
+              >
+                <span class="edition-symbol">
+                  @if (edition.imageUrl && !failedImages().has(edition.id)) {
+                    <img
+                      [src]="edition.imageUrl"
+                      alt=""
+                      loading="lazy"
+                      (error)="imageFailed(edition.id)"
+                    />
+                  } @else {
+                    ◇
+                  }</span
+                ><span class="edition-name"
+                  >{{ editionName(edition) }}<small>{{ edition.code }}</small></span
+                ><span class="edition-arrow" aria-hidden="true">↗</span>
+              </a>
+            }
+          </div>
+          @if (groupRows(group).length < group.editions.length) {
+            <button class="show-more" (click)="expandYear(group.key)">
+              Mostrar todas as {{ group.editions.length }} edições +
+            </button>
+          }
+        </section>
+      } @empty {
+        <div class="empty">
+          <h2>Nenhuma edição encontrada</h2>
+          <p>Tente outro nome, sigla ou ano.</p>
+        </div>
+      }
+    </div>
+    @if (
+      !allYears() && !editionSearch() && !year() && editionOrder() === 'year' && years().length > 6
+    ) {
+      <button class="load-more" (click)="allYears.set(true)">Explorar anos anteriores ↓</button>
+    }
+    <p class="note">
+      Catálogo da
+      <a
+        href="https://www.ligapokemon.com.br/?view=cards/edicoes"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Liga Pokémon ↗</a
+      >
+    </p>
+  }
+</main>

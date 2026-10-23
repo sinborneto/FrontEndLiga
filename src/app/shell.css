@@ -1,0 +1,117 @@
+header {
+  min-height: 80px;
+  background: white;
+  border-bottom: 1px solid #e6eae5;
+  display: flex;
+  align-items: center;
+  padding: 0 max(24px, calc((100vw - 1180px) / 2));
+  gap: 32px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  color: #193b30;
+  text-decoration: none;
+  font:
+    800 23px Manrope,
+    sans-serif;
+  letter-spacing: -1px;
+  white-space: nowrap;
+}
+.brand > span:not(.ball) {
+  font-weight: 500;
+}
+.brand small {
+  font:
+    600 9px 'DM Sans',
+    sans-serif;
+  letter-spacing: 1px;
+  background: #e9f1e6;
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-left: 10px;
+}
+.ball {
+  width: 31px;
+  height: 31px;
+  border: 2px solid #244e3d;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 14px;
+  margin-right: 10px;
+  background: linear-gradient(transparent 46%, #244e3d 46%, #244e3d 54%, transparent 54%);
+}
+nav {
+  display: flex;
+  align-self: stretch;
+  gap: 26px;
+}
+nav a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #768079;
+  font-size: 13px;
+  border-bottom: 3px solid transparent;
+  padding-top: 3px;
+}
+nav a.active {
+  color: #234e3b;
+  border-color: #234e3b;
+  font-weight: 700;
+}
+.portal {
+  margin-left: auto;
+  color: #657269;
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+footer {
+  max-width: 1180px;
+  margin: 48px auto 0;
+  padding: 25px 0 32px;
+  border-top: 1px solid #e1e6de;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  color: #7c857f;
+  font-size: 11px;
+}
+footer .brand {
+  font-size: 19px;
+}
+footer > span:last-child {
+  margin-left: auto;
+}
+@media (max-width: 760px) {
+  header {
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    padding: 18px 20px 0;
+  }
+  .brand {
+    font-size: 21px;
+  }
+  .portal {
+    font-size: 10px;
+  }
+  nav {
+    order: 3;
+    width: 100%;
+    gap: 26px;
+  }
+  nav a {
+    padding: 12px 0;
+  }
+  footer {
+    margin: 32px 20px 0;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer > span:last-child {
+    margin-left: 0;
+    width: 100%;
+  }
+}

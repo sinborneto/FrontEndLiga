@@ -29,6 +29,10 @@ Se a porta estiver ocupada, use `npm start -- --port 4201`.
 
 ## Funcionalidades
 
+- Nova página **Explorar edições**, em `/edicoes`, com catálogo real da Liga, agrupamento por ano, busca por nome/sigla, ordenação alfabética e nomes em português ou inglês. Subconjuntos aparecem junto à edição principal.
+- Cada edição abre em `/edicoes/:id`, com todas as cartas carregadas da API: imagem, número, raridade, tipo/energia e menor preço informado pela Liga. Filtros de múltipla seleção usam apenas os atributos presentes na edição; seleções do mesmo grupo são combinadas por OU e grupos diferentes por E. A busca aceita nome português, inglês ou número.
+- Cartas em grade ou lista, ordenação por nome, número ou menor preço e carregamento visual em grupos de 24. Os filtros consideram a coleção completa, inclusive cartas ainda não exibidas. “Ver ofertas” abre a consulta existente com nome inglês, edição e número preenchidos; há também link direto para a carta na Liga.
+
 - Leilões aparecem em uma seção própria abaixo das lojas, somente quando a API retorna anúncios disponíveis. Exibe título, lance inicial/atual, preço fixo, incremento, encerramento em Brasília, vendedor, referências e link do leilão. Leilões não participam dos resumos de preço médio, menor preço ou estoque de lojas. Os quatro seletores também filtram leilões; preço e estoque filtram apenas as lojas.
 
 - Condição, acabamento, idioma e estado são seletores de múltipla escolha, preenchidos exclusivamente com valores conhecidos das ofertas da busca inicial. Opções repetidas ou ausentes são descartadas. A lista original permanece disponível após aplicar filtros, inclusive quando a seleção não retorna ofertas. Uma nova busca pelo formulário superior limpa os filtros e atualiza as opções para a nova carta. Todos os seletores fecham ao clicar fora ou pressionar Esc.
@@ -66,6 +70,9 @@ Os testes usam o backend HTTP de testes do Angular e verificam filtros, validaç
 Validação inicial em 23/10/2026: 10 testes e build aprovados; consulta real pelo navegador retornou 81 ofertas de Articuno (132/128), edição 30C. Esses totais são históricos.
 
 ## Estrutura
+
+- `src/app/shell.ts` e `app.config.ts`: cabeçalho compartilhado, navegação e rotas Angular.
+- `src/app/catalog.*` e `catalog.service.ts`: catálogo de edições e cartas, filtros e integração HTTP.
 
 - `src/app/prices.service.ts`: contrato da API, parâmetros HTTP e timeout de 150 segundos.
 - `src/app/app.ts`: estado da busca, validação, paginação e resumos.

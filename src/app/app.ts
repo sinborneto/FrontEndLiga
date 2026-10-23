@@ -6,14 +6,24 @@ import { finalize, TimeoutError } from 'rxjs';
 import { PricesService, SearchQuery, SearchResult, Offer, Auction } from './prices.service';
 import { MultiSelect } from './multi-select';
 import { Auctions } from './auctions';
+import { ActivatedRoute } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'app-root',
+  selector: 'app-price-search',
   imports: [FormsModule, CurrencyPipe, DatePipe, MultiSelect, Auctions],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
+  constructor() {
+    inject(ActivatedRoute, { optional: true })
+      ?.queryParamMap.pipe(takeUntilDestroyed())
+      .subscribe((params) => {
+        const card = params.get('card');
+        if (card) this.example(card, params.get('edition') ?? '', params.get('number') ?? '');
+      });
+  }
   private readonly prices = inject(PricesService);
   readonly loading = signal(false);
   readonly imageFailed = signal(false);
