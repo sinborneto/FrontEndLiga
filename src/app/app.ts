@@ -14,6 +14,7 @@ import { PricesService, SearchQuery, SearchResult } from './prices.service';
 export class App {
   private readonly prices = inject(PricesService);
   readonly loading = signal(false);
+  readonly imageFailed = signal(false);
   readonly result = signal<SearchResult | null>(null);
   readonly error = signal('');
   readonly validation = signal('');
@@ -109,6 +110,7 @@ export class App {
       return;
     }
     this.loading.set(true);
+    this.imageFailed.set(false);
     this.result.set(null);
     this.error.set('');
     this.page.set(1);
@@ -145,6 +147,7 @@ export class App {
     this.search();
   }
   clear(): void {
+    this.imageFailed.set(false);
     this.query = this.emptyQuery();
     this.result.set(null);
     this.error.set('');
@@ -155,12 +158,28 @@ export class App {
     this.sort.set(value);
     this.page.set(1);
   }
-  safeUrl(url: string | null): string | null {
+  safeUrl(url: string | null | undefined): string | null {
     if (!url) return null;
     try {
       const parsed = new URL(url);
       return parsed.protocol === 'https:' &&
         ['www.ligapokemon.com.br', 'ligapokemon.com.br'].includes(parsed.hostname)
+        ? parsed.href
+        : null;
+    } catch {
+      return null;
+    }
+  }
+  safeImageUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'https:' &&
+        !parsed.username &&
+        !parsed.password &&
+        ['repositorio.sbrauble.com', 'www.ligapokemon.com.br', 'ligapokemon.com.br'].includes(
+          parsed.hostname,
+        )
         ? parsed.href
         : null;
     } catch {

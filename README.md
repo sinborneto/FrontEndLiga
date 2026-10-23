@@ -29,6 +29,8 @@ Se a porta estiver ocupada, use `npm start -- --port 4201`.
 
 ## Funcionalidades
 
+- Imagem da carta identificada pela API, com prévia maior e ampliação ao clicar, além do botão “Ver carta na Liga Pokémon” ao lado do nome. A visualização ampliada fecha pelo botão, Esc ou clique fora da janela. A imagem tem descrição acessível e fallback quando ausente ou com erro. O backend deve estar atualizado para retornar `card.imageUrl` e `card.url`.
+
 - Busca por nome, edição e número de carta (`GET /api/cards/prices`).
 - Filtros de preço mínimo/máximo, estoque mínimo, estado, condição, acabamento e idioma.
 - Tabela com loja, cidade/UF, preço, preço anterior quando houver desconto, estoque e atributos da carta.

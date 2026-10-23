@@ -234,16 +234,92 @@
   @if (result(); as result) {
     <section class="results" aria-labelledby="results-heading">
       <div class="results-header">
-        <div>
-          <div class="eyebrow">RESULTADOS DA BUSCA</div>
-          <h2 id="results-heading">
-            {{ result.card.name }}
-            <span class="edition-badge">{{ result.card.edition || 'Edição não informada' }}</span>
-          </h2>
-          <p>
-            {{ result.card.number || 'Número não informado' }} <span>·</span> Coleta em
-            {{ result.collectedAt | date: 'dd/MM/yyyy, HH:mm' }}
-          </p>
+        <div class="card-overview">
+          <div class="card-image-frame">
+            @if (!imageFailed() && safeImageUrl(result.card.imageUrl); as imageUrl) {
+              <button
+                type="button"
+                class="card-zoom-trigger"
+                (click)="cardPreview.showModal()"
+                [attr.aria-label]="'Ampliar imagem de ' + result.card.name"
+                aria-haspopup="dialog"
+              >
+                <img
+                  class="card-image"
+                  [src]="imageUrl"
+                  [alt]="
+                    'Carta ' +
+                    result.card.name +
+                    (result.card.number ? ' (' + result.card.number + ')' : '') +
+                    (result.card.edition ? ' — ' + result.card.edition : '')
+                  "
+                  width="178"
+                  height="249"
+                  referrerpolicy="no-referrer"
+                  (error)="imageFailed.set(true)"
+                />
+                <span class="zoom-caption"
+                  ><svg aria-hidden="true"><use href="#search" /></svg> Clique para ampliar</span
+                >
+              </button>
+              <dialog
+                #cardPreview
+                class="card-preview-dialog"
+                aria-labelledby="card-preview-title"
+                (click)="$event.target === cardPreview && cardPreview.close()"
+              >
+                <div class="preview-heading">
+                  <div>
+                    <h2 id="card-preview-title">{{ result.card.name }}</h2>
+                    <p>
+                      {{ result.card.number
+                      }}{{ result.card.edition ? ' · ' + result.card.edition : '' }}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="preview-close"
+                    (click)="cardPreview.close()"
+                    aria-label="Fechar imagem ampliada"
+                    autofocus
+                  >
+                    ✕
+                  </button>
+                </div>
+                <img
+                  class="expanded-card-image"
+                  [src]="imageUrl"
+                  [alt]="
+                    'Imagem ampliada de ' +
+                    result.card.name +
+                    (result.card.number ? ' (' + result.card.number + ')' : '')
+                  "
+                  referrerpolicy="no-referrer"
+                />
+                <p class="preview-hint">Pressione Esc ou clique fora para fechar.</p>
+              </dialog>
+            } @else {
+              <div class="card-image-placeholder">
+                <svg aria-hidden="true"><use href="#cards" /></svg><span>Imagem indisponível</span>
+              </div>
+            }
+          </div>
+          <div class="card-summary">
+            <div class="eyebrow">RESULTADOS DA BUSCA</div>
+            <h2 id="results-heading">
+              {{ result.card.name }}
+              <span class="edition-badge">{{ result.card.edition || 'Edição não informada' }}</span>
+            </h2>
+            <p>
+              {{ result.card.number || 'Número não informado' }} <span>·</span> Coleta em
+              {{ result.collectedAt | date: 'dd/MM/yyyy, HH:mm' }}
+            </p>
+            @if (safeUrl(result.card.url); as cardUrl) {
+              <a class="card-page-link" [href]="cardUrl" target="_blank" rel="noopener noreferrer">
+                Ver carta na Liga Pokémon <svg aria-hidden="true"><use href="#external" /></svg>
+              </a>
+            }
+          </div>
         </div>
         <span class="result-count">{{ result.offers.length }} ofertas encontradas</span>
       </div>

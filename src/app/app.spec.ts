@@ -52,6 +52,40 @@ describe('Busca de ofertas', () => {
   });
   afterEach(() => http.verify());
 
+  it('exibe a imagem da edição e o link direto da carta', () => {
+    const response = result([offer(39.9)]);
+    response.card.imageUrl = 'https://repositorio.sbrauble.com/cartas/articuno.jpg';
+    response.card.url = 'https://www.ligapokemon.com.br/?view=cards%2Fsearch&card=Articuno';
+    app.result.set(response);
+    fixture.detectChanges();
+    const image = fixture.nativeElement.querySelector('.card-image') as HTMLImageElement;
+    expect(image.src).toBe(response.card.imageUrl);
+    expect(image.alt).toContain('132/128');
+    expect(image.alt).toContain('30C');
+    const link = fixture.nativeElement.querySelector('.card-page-link') as HTMLAnchorElement;
+    expect(link.href).toBe(response.card.url);
+    expect(link.target).toBe('_blank');
+    expect(link.rel).toContain('noopener');
+    image.dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Imagem indisponível');
+    expect(fixture.nativeElement.querySelector('.card-page-link')).toBeTruthy();
+    expect(fixture.nativeElement.querySelectorAll('tbody tr')).toHaveLength(1);
+  });
+
+  it('aceita respostas anteriores sem mídia e rejeita origens inválidas de imagem', () => {
+    app.result.set(result([]));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Imagem indisponível');
+    expect(fixture.nativeElement.querySelector('.card-page-link')).toBeNull();
+    expect(app.safeImageUrl('https://repositorio.sbrauble.com.evil.example/image.jpg')).toBeNull();
+    expect(app.safeImageUrl('http://repositorio.sbrauble.com/image.jpg')).toBeNull();
+    expect(app.safeImageUrl('data:image/svg+xml,test')).toBeNull();
+    app.imageFailed.set(true);
+    app.clear();
+    expect(app.imageFailed()).toBe(false);
+  });
+
   it('não consulta com nome vazio ou intervalo inválido', () => {
     app.search();
     expect(app.validation()).toContain('nome');

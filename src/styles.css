@@ -10,6 +10,9 @@ body {
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
+body:has(dialog[open]) {
+  overflow: hidden;
+}
 button,
 input,
 select {

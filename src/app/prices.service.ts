@@ -29,7 +29,13 @@ export interface Offer {
   url: string | null;
 }
 export interface SearchResult {
-  card: { name: string; number: string | null; edition: string | null };
+  card: {
+    name: string;
+    number: string | null;
+    edition: string | null;
+    imageUrl?: string | null;
+    url?: string | null;
+  };
   source: string;
   totalOffers: number;
   collectedAt: string;
