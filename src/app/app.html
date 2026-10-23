@@ -1,0 +1,461 @@
+<svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <symbol id="search" viewBox="0 0 24 24">
+      <circle cx="10.8" cy="10.8" r="6.8" />
+      <path d="m16 16 4.5 4.5" />
+    </symbol>
+    <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6" /></symbol>
+    <symbol id="external" viewBox="0 0 24 24">
+      <path d="M14 4h6v6m-9 3 9-9M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" />
+    </symbol>
+    <symbol id="filter" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 17h16" />
+      <circle cx="9" cy="7" r="2.5" />
+      <circle cx="15" cy="17" r="2.5" />
+    </symbol>
+    <symbol id="cards" viewBox="0 0 24 24">
+      <rect x="7" y="3" width="13" height="17" rx="2" />
+      <path d="m4 6-2 14a2 2 0 0 0 2 2l10 1M11 8h5m-5 4h5" />
+    </symbol>
+  </defs>
+</svg>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="Liga Finder, início"
+    ><span class="brand-mark"><span></span></span>Liga<span class="brand-light">Finder</span
+    ><span class="beta">BETA</span></a
+  >
+  <span class="header-description">Seu próximo achado começa aqui.</span>
+  <a
+    class="portal-link"
+    href="https://www.ligapokemon.com.br/"
+    target="_blank"
+    rel="noopener noreferrer"
+    >Liga Pokémon <svg><use href="#external" /></svg
+  ></a>
+</header>
+<main>
+  <div class="breadcrumb">POKÉMON TCG <span>/</span> EXPLORAR PREÇOS</div>
+  <section class="intro">
+    <div>
+      <div class="eyebrow"><span></span> MENOS PROCURA. MAIS COLEÇÃO.</div>
+      <h1>Encontre a carta.<br />Compare as <span>possibilidades.</span></h1>
+      <p>
+        Consulte ofertas da Liga Pokémon e encontre o melhor<br class="desktop-break" />
+        preço para a próxima carta da sua coleção.
+      </p>
+    </div>
+    <div class="intro-art" aria-hidden="true">
+      <div class="orbit"></div>
+      <div class="playing-card card-back"></div>
+      <div class="playing-card card-front">
+        <span>✦</span>
+        <div class="card-orb"><i></i></div>
+        <div class="card-lines"></div>
+        <small>POKÉMON TCG</small>
+      </div>
+      <span class="spark spark-one">✦</span><span class="spark spark-two">+</span>
+    </div>
+  </section>
+  <section class="search-panel" aria-labelledby="search-heading">
+    <div class="panel-title">
+      <span class="section-icon"
+        ><svg><use href="#search" /></svg
+      ></span>
+      <div>
+        <h2 id="search-heading">O que você está procurando?</h2>
+        <p>Busque pelo nome e refine a versão da sua carta.</p>
+      </div>
+    </div>
+    <form (ngSubmit)="search()" novalidate>
+      <fieldset [disabled]="loading()">
+        <div class="search-grid">
+          <label class="name-field" for="card"
+            >Nome da carta <span class="required">*</span>
+            <div class="input-icon">
+              <svg><use href="#search" /></svg
+              ><input
+                id="card"
+                name="card"
+                [(ngModel)]="query.card"
+                placeholder="Ex.: Articuno (132/128)"
+                maxlength="200"
+                required
+                [attr.aria-invalid]="validation() ? true : null"
+                aria-describedby="search-help validation"
+              /></div
+          ></label>
+          <label for="edition"
+            >Edição <span class="optional">opcional</span
+            ><input
+              id="edition"
+              name="edition"
+              [(ngModel)]="query.edition"
+              placeholder="Ex.: 30C"
+              maxlength="40"
+          /></label>
+          <label for="number"
+            >Número <span class="optional">opcional</span
+            ><input
+              id="number"
+              name="number"
+              [(ngModel)]="query.number"
+              placeholder="Ex.: 132/128"
+              maxlength="30"
+          /></label>
+          <button class="primary-button search-button" type="submit">
+            @if (loading()) {
+              <span class="spinner"></span> Buscando…
+            } @else {
+              Buscar ofertas <svg><use href="#arrow" /></svg>
+            }
+          </button>
+        </div>
+        <div class="search-bottom">
+          <p id="search-help">Inclua o número e a edição para encontrar a versão exata.</p>
+          <button
+            class="filter-toggle"
+            type="button"
+            (click)="advanced.set(!advanced())"
+            [attr.aria-expanded]="advanced()"
+            aria-controls="advanced-filters"
+          >
+            <svg><use href="#filter" /></svg> Filtros {{ advanced() ? '−' : '+' }}
+          </button>
+        </div>
+        @if (advanced()) {
+          <div class="advanced-grid" id="advanced-filters">
+            <label for="minPrice"
+              >Preço mínimo (R$)<input
+                id="minPrice"
+                name="minPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                [(ngModel)]="query.minPrice"
+                placeholder="0,00"
+            /></label>
+            <label for="maxPrice"
+              >Preço máximo (R$)<input
+                id="maxPrice"
+                name="maxPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                [(ngModel)]="query.maxPrice"
+                placeholder="Sem limite"
+            /></label>
+            <label for="minStock"
+              >Estoque mínimo<input
+                id="minStock"
+                name="minStock"
+                type="number"
+                min="0"
+                step="1"
+                [(ngModel)]="query.minStock"
+                placeholder="Qualquer"
+            /></label>
+            <label for="state"
+              >Estado<select id="state" name="state" [(ngModel)]="query.state">
+                <option value="">Todos os estados</option>
+                @for (state of states; track state) {
+                  <option [value]="state">{{ state }}</option>
+                }
+              </select></label
+            >
+            <label for="quality"
+              >Condição<input
+                id="quality"
+                name="quality"
+                [(ngModel)]="query.quality"
+                placeholder="Ex.: NM"
+            /></label>
+            <label for="finish"
+              >Acabamento<input
+                id="finish"
+                name="finish"
+                [(ngModel)]="query.finish"
+                placeholder="Ex.: Foil"
+            /></label>
+            <label for="language"
+              >Idioma<input
+                id="language"
+                name="language"
+                [(ngModel)]="query.language"
+                placeholder="Ex.: Português"
+            /></label>
+            <button type="button" class="clear-button" (click)="clear()">Limpar busca</button>
+          </div>
+        }
+      </fieldset>
+      <p id="validation" class="validation" role="alert">{{ validation() }}</p>
+    </form>
+    <div class="suggestions">
+      <span>Experimente:</span
+      ><button
+        type="button"
+        [disabled]="loading()"
+        (click)="example('Articuno (132/128)', '30C', '132/128')"
+      >
+        Articuno <span>132/128 ↗</span></button
+      ><button
+        type="button"
+        [disabled]="loading()"
+        (click)="example('Chandelure (137/128)', '30C', '137/128')"
+      >
+        Chandelure <span>137/128 ↗</span></button
+      ><button
+        type="button"
+        [disabled]="loading()"
+        (click)="example('Pikachu (025/165)', 'MEW', '025/165')"
+      >
+        Pikachu <span>025/165 ↗</span>
+      </button>
+    </div>
+  </section>
+  <div aria-live="polite" aria-atomic="true" class="sr-only">
+    {{
+      loading()
+        ? 'Consultando ofertas, aguarde.'
+        : result()
+          ? result()!.offers.length + ' ofertas encontradas.'
+          : ''
+    }}
+  </div>
+  @if (error()) {
+    <section class="error-panel" role="alert">
+      <span class="error-icon">!</span>
+      <div>
+        <h2>Não foi possível concluir a busca</h2>
+        <p>{{ error() }}</p>
+      </div>
+      <button class="clear-button" type="button" (click)="search()">Tentar novamente ↗</button>
+    </section>
+  }
+  @if (result(); as result) {
+    <section class="results" aria-labelledby="results-heading">
+      <div class="results-header">
+        <div>
+          <div class="eyebrow">RESULTADOS DA BUSCA</div>
+          <h2 id="results-heading">
+            {{ result.card.name }}
+            <span class="edition-badge">{{ result.card.edition || 'Edição não informada' }}</span>
+          </h2>
+          <p>
+            {{ result.card.number || 'Número não informado' }} <span>·</span> Coleta em
+            {{ result.collectedAt | date: 'dd/MM/yyyy, HH:mm' }}
+          </p>
+        </div>
+        <span class="result-count">{{ result.offers.length }} ofertas encontradas</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat">
+          <span>Menor preço</span
+          ><strong class="green">{{
+            stats().min === null
+              ? '—'
+              : (stats().min | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR')
+          }}</strong
+          ><small>entre os preços disponíveis</small>
+        </div>
+        <div class="stat">
+          <span>Preço médio</span
+          ><strong>{{
+            stats().average === null
+              ? '—'
+              : (stats().average | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR')
+          }}</strong
+          ><small>das ofertas encontradas</small>
+        </div>
+        <div class="stat">
+          <span>Lojas encontradas</span><strong>{{ stats().stores }}</strong
+          ><small>com identificação disponível</small>
+        </div>
+        <div class="stat">
+          <span>Estoque conhecido</span><strong>{{ stats().stock }} <em>un.</em></strong
+          ><small>{{
+            stats().unknownStock
+              ? stats().unknownStock + ' ofertas sem estoque informado'
+              : 'nas ofertas desta busca'
+          }}</small>
+        </div>
+      </div>
+      @if (
+        result.diagnostics.pricesPending ||
+        result.diagnostics.stocksPending ||
+        result.diagnostics.messages.length
+      ) {
+        <div class="diagnostics" role="status">
+          Alguns dados não puderam ser identificados. Valores desconhecidos aparecem como “—”.
+          @for (message of result.diagnostics.messages; track $index) {
+            <span>{{ message }}</span>
+          }
+        </div>
+      }
+      <div class="table-panel">
+        <div class="table-toolbar">
+          <h3>
+            Ofertas disponíveis <span>{{ result.offers.length }}</span>
+          </h3>
+          <label for="sort"
+            >Ordenar por
+            <select id="sort" [ngModel]="sort()" (ngModelChange)="changeSort($event)">
+              <option value="price_asc">Menor preço</option>
+              <option value="price_desc">Maior preço</option>
+              <option value="stock_desc">Maior estoque</option>
+            </select></label
+          >
+        </div>
+        @if (result.offers.length) {
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="Tabela de ofertas, role horizontalmente em telas pequenas"
+          >
+            <table>
+              <caption class="sr-only">
+                Ofertas de
+                {{
+                  result.card.name
+                }}
+                na Liga Pokémon
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Loja / localização</th>
+                  <th scope="col">Preço</th>
+                  <th scope="col">Estoque</th>
+                  <th scope="col">Condição</th>
+                  <th scope="col">Acabamento</th>
+                  <th scope="col">Idioma</th>
+                  <th scope="col"><span class="sr-only">Ver oferta</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (offer of visibleOffers(); track $index) {
+                  <tr>
+                    <td>
+                      <div class="store-cell">
+                        <span class="store-avatar" aria-hidden="true">{{
+                          (offer.store || '?').slice(0, 2).toUpperCase()
+                        }}</span>
+                        <div>
+                          <strong>{{ offer.store || 'Loja não informada' }}</strong
+                          ><small
+                            >{{ offer.city || 'Local não informado'
+                            }}{{ offer.state ? ' · ' + offer.state : '' }}</small
+                          >
+                        </div>
+                      </div>
+                    </td>
+                    <td class="price-cell">
+                      <strong>{{
+                        offer.price === null
+                          ? '—'
+                          : (offer.price | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR')
+                      }}</strong>
+                      @if (
+                        offer.originalPrice !== null &&
+                        offer.price !== null &&
+                        offer.originalPrice > offer.price
+                      ) {
+                        <del>{{
+                          offer.originalPrice | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+                        }}</del>
+                      }
+                    </td>
+                    <td>{{ offer.stock === null ? '—' : offer.stock + ' un.' }}</td>
+                    <td>
+                      <span [class.quality-badge]="offer.quality">{{ offer.quality || '—' }}</span>
+                    </td>
+                    <td>{{ offer.finish || '—' }}</td>
+                    <td>{{ offer.language || '—' }}</td>
+                    <td>
+                      @if (safeUrl(offer.url); as url) {
+                        <a
+                          class="offer-link"
+                          [href]="url"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          [attr.aria-label]="'Ver oferta de ' + (offer.store || 'loja')"
+                          >Ver oferta <svg><use href="#external" /></svg
+                        ></a>
+                      } @else {
+                        <span class="unavailable">Sem link</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span
+              >Mostrando {{ firstItem() }}–{{ lastItem() }} de {{ offers().length }} ofertas</span
+            >
+            <div>
+              <button
+                type="button"
+                [disabled]="page() === 1"
+                (click)="page.set(page() - 1)"
+                aria-label="Página anterior"
+              >
+                ←</button
+              ><span>{{ page() }} / {{ totalPages() }}</span
+              ><button
+                type="button"
+                [disabled]="page() === totalPages()"
+                (click)="page.set(page() + 1)"
+                aria-label="Próxima página"
+              >
+                →
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="empty-results">
+            <svg><use href="#search" /></svg>
+            <h3>Nenhuma oferta com esses filtros</h3>
+            <p>Experimente ampliar a faixa de preço ou remover algum filtro e buscar novamente.</p>
+          </div>
+        }
+      </div>
+    </section>
+  } @else if (loading()) {
+    <section class="loading-panel" role="status">
+      <span class="spinner"></span>
+      <h2>Procurando seu próximo achado…</h2>
+      <p>Estamos consultando as lojas na Liga Pokémon. Isso pode levar alguns instantes.</p>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </section>
+  } @else if (!error()) {
+    <section class="welcome-panel">
+      <span class="welcome-icon"
+        ><svg><use href="#cards" /></svg
+      ></span>
+      <h2>Sua coleção merece uma boa busca.</h2>
+      <p>
+        Digite uma carta acima para comparar preços, conferir estoques<br class="desktop-break" />
+        e explorar ofertas de diferentes lojas em um só lugar.
+      </p>
+      <div class="welcome-steps">
+        <span><b>01</b> Encontre sua carta</span><i>→</i><span><b>02</b> Compare as ofertas</span
+        ><i>→</i><span><b>03</b> Visite a loja</span>
+      </div>
+    </section>
+  }
+  <aside class="data-note">
+    <span>ⓘ</span>
+    <p>
+      Preços e estoques podem mudar. Confirme os dados na loja antes de comprar. Frete não incluído
+      nos valores.
+    </p>
+  </aside>
+</main>
+<footer>
+  <a class="brand footer-brand" href="/">Liga<span class="brand-light">Finder</span></a
+  ><span>Feito para quem coleciona possibilidades.</span
+  ><span>Projeto independente · Dados da Liga Pokémon</span>
+</footer>
