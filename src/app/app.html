@@ -66,7 +66,7 @@
         <p>Busque pelo nome e refine a versão da sua carta.</p>
       </div>
     </div>
-    <form (ngSubmit)="search()" novalidate>
+    <form (ngSubmit)="search(true)" novalidate>
       <fieldset [disabled]="loading()">
         <div class="search-grid">
           <label class="name-field" for="card"
@@ -356,58 +356,16 @@
                   [(ngModel)]="query.minStock"
                   placeholder="Qualquer"
               /></label>
-              <label for="state"
-                >Estado<select id="state" name="state" [(ngModel)]="query.state">
-                  <option value="">Todos os estados</option>
-                  @for (state of states; track state) {
-                    <option [value]="state">{{ state }}</option>
-                  }
-                </select></label
-              >
-              <div class="quality-field">
-                <span id="quality-label">Condição</span>
-                <details
-                  #qualitySelect
-                  class="quality-select"
-                  (keydown.escape)="
-                    qualitySelect.open = false; qualitySummary.focus(); $event.stopPropagation()
-                  "
-                >
-                  <summary #qualitySummary aria-labelledby="quality-label quality-value">
-                    <span id="quality-value">{{
-                      query.quality.length ? query.quality.join(', ') : 'Todas as condições'
-                    }}</span
-                    ><span aria-hidden="true">⌄</span>
-                  </summary>
-                  <div class="quality-options" role="group" aria-label="Condições da carta">
-                    @for (quality of qualities; track quality) {
-                      <label
-                        ><input
-                          type="checkbox"
-                          [checked]="query.quality.includes(quality)"
-                          (change)="toggleQuality(quality)"
-                          [attr.aria-label]="'Condição ' + quality"
-                        /><span>{{ quality }}</span></label
-                      >
-                    }
-                    <p>Nenhuma marcada = todas</p>
-                  </div>
-                </details>
-              </div>
-              <label for="finish"
-                >Acabamento<input
-                  id="finish"
-                  name="finish"
-                  [(ngModel)]="query.finish"
-                  placeholder="Ex.: Foil"
-              /></label>
-              <label for="language"
-                >Idioma<input
-                  id="language"
-                  name="language"
-                  [(ngModel)]="query.language"
-                  placeholder="Ex.: Português"
-              /></label>
+              @for (filter of attributeFilters; track filter.key) {
+                <app-multi-select
+                  [fieldKey]="filter.key"
+                  [label]="filter.label"
+                  [allLabel]="filter.allLabel"
+                  [options]="filterOptions()[filter.key]"
+                  [selected]="query[filter.key]"
+                  (selectedChange)="query[filter.key] = $event"
+                />
+              }
               <button type="button" class="clear-button" (click)="clear()">Limpar busca</button>
             </div>
           </fieldset>

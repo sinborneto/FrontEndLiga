@@ -7,9 +7,9 @@ export interface SearchQuery {
   edition: string;
   number: string;
   quality: string[];
-  finish: string;
-  language: string;
-  state: string;
+  finish: string[];
+  language: string[];
+  state: string[];
   minPrice: number | null;
   maxPrice: number | null;
   minStock: number | null;

@@ -29,6 +29,8 @@ Se a porta estiver ocupada, use `npm start -- --port 4201`.
 
 ## Funcionalidades
 
+- Condição, acabamento, idioma e estado são seletores de múltipla escolha, preenchidos exclusivamente com valores conhecidos das ofertas da busca inicial. Opções repetidas ou ausentes são descartadas. A lista original permanece disponível após aplicar filtros, inclusive quando a seleção não retorna ofertas. Uma nova busca pelo formulário superior limpa os filtros e atualiza as opções para a nova carta. Todos os seletores fecham ao clicar fora ou pressionar Esc.
+
 - Logotipos das lojas junto ao nome na tabela, com carregamento sob demanda e iniciais como alternativa quando não há imagem ou o arquivo falha.
 
 - A API testa numerações com 1, 2 e 3 dígitos, ignorando zeros à esquerda nas comparações. Quando isso encontra edições diferentes, a tela apresenta botões para escolher a carta correta e preserva os demais filtros.

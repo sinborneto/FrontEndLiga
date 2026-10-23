@@ -52,6 +52,53 @@ describe('Busca de ofertas', () => {
   });
   afterEach(() => http.verify());
 
+  it('monta as opções da busca completa e preserva opções após filtrar e zerar resultados', () => {
+    const allOffers = [
+      { ...offer(10), state: 'PR', quality: 'NM', finish: 'Foil', language: 'Português' },
+      { ...offer(20), state: 'SP', quality: 'HP', finish: 'Normal', language: 'Inglês' },
+      { ...offer(30), state: null, quality: null, finish: null, language: null },
+      { ...offer(10), state: 'PR', quality: 'NM', finish: 'Foil', language: 'Português' },
+    ];
+    app.query.card = 'Articuno';
+    app.search(true);
+    http.expectOne((r) => r.url === '/api/cards/prices').flush(result(allOffers));
+    expect(app.filterOptions()).toEqual({
+      state: ['PR', 'SP'],
+      quality: ['NM', 'HP'],
+      finish: ['Foil', 'Normal'],
+      language: ['Inglês', 'Português'],
+    });
+    app.query.state = ['PR', 'SP'];
+    app.query.quality = ['NM', 'HP'];
+    app.query.finish = ['Foil', 'Normal'];
+    app.query.language = ['Português', 'Inglês'];
+    app.search();
+    const filtered = http.expectOne((r) => r.url === '/api/cards/prices');
+    expect(filtered.request.params.get('finish')).toBe('Foil,Normal');
+    expect(filtered.request.params.get('language')).toBe('Português,Inglês');
+    expect(filtered.request.params.get('state')).toBe('PR,SP');
+    filtered.flush(result([allOffers[0]]));
+    expect(app.filterOptions().quality).toEqual(['NM', 'HP']);
+    expect(app.filterOptions().state).toEqual(['PR', 'SP']);
+    app.search();
+    http.expectOne((r) => r.url === '/api/cards/prices').flush(result([]));
+    expect(app.filterOptions().finish).toEqual(['Foil', 'Normal']);
+    app.query.card = 'Outra carta';
+    app.search(true);
+    const next = http.expectOne((r) => r.url === '/api/cards/prices');
+    for (const key of ['quality', 'finish', 'language', 'state'])
+      expect(next.request.params.has(key)).toBe(false);
+    next.flush(
+      result([{ ...offer(10), state: 'RJ', quality: 'M', finish: 'Normal', language: 'Japonês' }]),
+    );
+    expect(app.filterOptions()).toEqual({
+      state: ['RJ'],
+      quality: ['M'],
+      finish: ['Normal'],
+      language: ['Japonês'],
+    });
+  });
+
   it('mantém o link da Liga e acrescenta o link para a loja em outra aba', () => {
     app.result.set(result([{ ...offer(10), storeUrl: 'https://www.ligapokemon.com.br/b/?p=e1' }]));
     fixture.detectChanges();
@@ -117,7 +164,9 @@ describe('Busca de ofertas', () => {
   });
 
   it('fecha as condições ao clicar fora ou pressionar Esc e preserva a seleção', () => {
-    app.result.set(result([]));
+    app.result.set(
+      result(['M', 'NM', 'SP', 'MP', 'HP', 'D'].map((quality) => ({ ...offer(10), quality }))),
+    );
     fixture.detectChanges();
     const details = fixture.nativeElement.querySelector('.quality-select') as HTMLDetailsElement;
     details.open = true;
@@ -136,13 +185,16 @@ describe('Busca de ofertas', () => {
   });
 
   it('permite selecionar várias condições, envia a união e limpa a seleção', () => {
-    app.result.set(result([]));
+    app.result.set(
+      result(['M', 'NM', 'SP', 'MP', 'HP', 'D'].map((quality) => ({ ...offer(10), quality }))),
+    );
     fixture.detectChanges();
     const inputs = fixture.nativeElement.querySelectorAll(
       '.quality-options input',
     ) as NodeListOf<HTMLInputElement>;
     expect(inputs).toHaveLength(6);
     inputs[1].click();
+    fixture.detectChanges();
     inputs[4].click();
     fixture.detectChanges();
     expect(app.query.quality).toEqual(['NM', 'HP']);
@@ -219,7 +271,7 @@ describe('Busca de ofertas', () => {
     http.expectNone((r) => r.url === '/api/cards/prices');
   });
   it('envia filtros, preserva zero, bloqueia duplicatas e renderiza preços em reais', async () => {
-    Object.assign(app.query, { card: ' Articuno ', minPrice: 0, minStock: 0, state: 'PR' });
+    Object.assign(app.query, { card: ' Articuno ', minPrice: 0, minStock: 0, state: ['PR'] });
     app.search();
     app.search();
     expect(app.loading()).toBe(true);

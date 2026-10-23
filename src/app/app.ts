@@ -1,24 +1,18 @@
-import { Component, computed, inject, signal, ElementRef, viewChild } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize, TimeoutError } from 'rxjs';
-import { PricesService, SearchQuery, SearchResult } from './prices.service';
+import { PricesService, SearchQuery, SearchResult, Offer } from './prices.service';
+import { MultiSelect } from './multi-select';
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule, CurrencyPipe, DatePipe],
+  imports: [FormsModule, CurrencyPipe, DatePipe, MultiSelect],
   templateUrl: './app.html',
   styleUrl: './app.css',
-  host: { '(document:click)': 'closeQualityOutside($event)' },
 })
 export class App {
-  private readonly qualitySelect = viewChild<ElementRef<HTMLDetailsElement>>('qualitySelect');
-  closeQualityOutside(event: Event): void {
-    const select = this.qualitySelect()?.nativeElement;
-    if (select && event.target instanceof Node && !select.contains(event.target))
-      select.open = false;
-  }
   private readonly prices = inject(PricesService);
   readonly loading = signal(false);
   readonly imageFailed = signal(false);
@@ -27,47 +21,37 @@ export class App {
     this.failedStoreLogos.update((failed) => new Set([...failed, url]));
   }
   readonly result = signal<SearchResult | null>(null);
+  private readonly optionOffers = signal<Offer[] | null>(null);
+  readonly attributeFilters: Array<{
+    key: 'state' | 'quality' | 'finish' | 'language';
+    label: string;
+    allLabel: string;
+  }> = [
+    { key: 'state', label: 'Estado', allLabel: 'Todos os estados' },
+    { key: 'quality', label: 'Condição', allLabel: 'Todas as condições' },
+    { key: 'finish', label: 'Acabamento', allLabel: 'Todos os acabamentos' },
+    { key: 'language', label: 'Idioma', allLabel: 'Todos os idiomas' },
+  ];
+  readonly filterOptions = computed(() => {
+    const offers = this.optionOffers() ?? this.result()?.offers ?? [];
+    const values = (key: 'state' | 'quality' | 'finish' | 'language') =>
+      [
+        ...new Set(offers.flatMap((offer) => (offer[key]?.trim() ? [offer[key]!.trim()] : []))),
+      ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const quality = new Set(values('quality'));
+    return {
+      state: values('state'),
+      finish: values('finish'),
+      language: values('language'),
+      quality: ['M', 'NM', 'SP', 'MP', 'HP', 'D'].filter((value) => quality.has(value)),
+    };
+  });
   readonly error = signal('');
   readonly editionChoices = signal<Array<{ name: string; number: string; edition: string }>>([]);
   readonly validation = signal('');
   readonly sort = signal('price_asc');
   readonly page = signal(1);
   readonly pageSize = 20;
-  readonly qualities = ['M', 'NM', 'SP', 'MP', 'HP', 'D'];
-  toggleQuality(quality: string): void {
-    this.query.quality = this.query.quality.includes(quality)
-      ? this.query.quality.filter((value) => value !== quality)
-      : [...this.query.quality, quality];
-  }
-  readonly states = [
-    'AC',
-    'AL',
-    'AP',
-    'AM',
-    'BA',
-    'CE',
-    'DF',
-    'ES',
-    'GO',
-    'MA',
-    'MT',
-    'MS',
-    'MG',
-    'PA',
-    'PB',
-    'PR',
-    'PE',
-    'PI',
-    'RJ',
-    'RN',
-    'RS',
-    'RO',
-    'RR',
-    'SC',
-    'SP',
-    'SE',
-    'TO',
-  ];
   query: SearchQuery = this.emptyQuery();
   readonly offers = computed(() =>
     [...(this.result()?.offers ?? [])].sort((a, b) => {
@@ -100,10 +84,21 @@ export class App {
       unknownStock: offers.filter((o) => o.stock === null).length,
     };
   });
-  search(): void {
-    const select = this.qualitySelect()?.nativeElement;
-    if (select) select.open = false;
+  search(resetFilters = false): void {
     if (this.loading()) return;
+    if (resetFilters) {
+      this.optionOffers.set(null);
+      this.query = {
+        ...this.query,
+        quality: [],
+        finish: [],
+        language: [],
+        state: [],
+        minPrice: null,
+        maxPrice: null,
+        minStock: null,
+      };
+    }
     this.validation.set('');
     const query = { ...this.query, card: this.query.card.trim() };
     if (!query.card) {
@@ -139,7 +134,10 @@ export class App {
       .search(query)
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (result) => this.result.set(result),
+        next: (result) => {
+          if (resetFilters || this.optionOffers() === null) this.optionOffers.set(result.offers);
+          this.result.set(result);
+        },
         error: (error: unknown) => {
           if (error instanceof TimeoutError)
             this.error.set(
@@ -186,9 +184,10 @@ export class App {
   }
   example(card: string, edition: string, number: string): void {
     this.query = { ...this.emptyQuery(), card, edition, number };
-    this.search();
+    this.search(true);
   }
   clear(): void {
+    this.optionOffers.set(null);
     this.failedStoreLogos.set(new Set());
     this.editionChoices.set([]);
     this.imageFailed.set(false);
@@ -240,9 +239,9 @@ export class App {
       edition: '',
       number: '',
       quality: [],
-      finish: '',
-      language: '',
-      state: '',
+      finish: [],
+      language: [],
+      state: [],
       minPrice: null,
       maxPrice: null,
       minStock: null,
