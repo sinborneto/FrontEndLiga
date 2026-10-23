@@ -3,12 +3,13 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize, TimeoutError } from 'rxjs';
-import { PricesService, SearchQuery, SearchResult, Offer } from './prices.service';
+import { PricesService, SearchQuery, SearchResult, Offer, Auction } from './prices.service';
 import { MultiSelect } from './multi-select';
+import { Auctions } from './auctions';
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule, CurrencyPipe, DatePipe, MultiSelect],
+  imports: [FormsModule, CurrencyPipe, DatePipe, MultiSelect, Auctions],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -21,7 +22,8 @@ export class App {
     this.failedStoreLogos.update((failed) => new Set([...failed, url]));
   }
   readonly result = signal<SearchResult | null>(null);
-  private readonly optionOffers = signal<Offer[] | null>(null);
+  private readonly optionOffers = signal<Array<Offer | Auction> | null>(null);
+  readonly auctions = computed(() => this.result()?.auctions ?? []);
   readonly attributeFilters: Array<{
     key: 'state' | 'quality' | 'finish' | 'language';
     label: string;
@@ -33,7 +35,10 @@ export class App {
     { key: 'language', label: 'Idioma', allLabel: 'Todos os idiomas' },
   ];
   readonly filterOptions = computed(() => {
-    const offers = this.optionOffers() ?? this.result()?.offers ?? [];
+    const offers = this.optionOffers() ?? [
+      ...(this.result()?.offers ?? []),
+      ...(this.result()?.auctions ?? []),
+    ];
     const values = (key: 'state' | 'quality' | 'finish' | 'language') =>
       [
         ...new Set(offers.flatMap((offer) => (offer[key]?.trim() ? [offer[key]!.trim()] : []))),
@@ -135,7 +140,8 @@ export class App {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (result) => {
-          if (resetFilters || this.optionOffers() === null) this.optionOffers.set(result.offers);
+          if (resetFilters || this.optionOffers() === null)
+            this.optionOffers.set([...result.offers, ...(result.auctions ?? [])]);
           this.result.set(result);
         },
         error: (error: unknown) => {

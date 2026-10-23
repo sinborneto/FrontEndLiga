@@ -42,6 +42,8 @@ export interface SearchResult {
   totalOffers: number;
   collectedAt: string;
   offers: Offer[];
+  auctions?: Auction[];
+  totalAuctions?: number;
   diagnostics: {
     pricesDecoded: number;
     pricesPending: number;
@@ -49,6 +51,25 @@ export interface SearchResult {
     stocksPending: number;
     messages: string[];
   };
+}
+export interface Auction {
+  auctionId: number | null;
+  title: string | null;
+  bidPrice: number | null;
+  fixedPrice: number | null;
+  bidIncrement: number | null;
+  bids: number | null;
+  endsAt: string | null;
+  seller: string | null;
+  sellerUrl: string | null;
+  state: string | null;
+  referencesCount: number | null;
+  positivePercent: number | null;
+  acceptsLigaSegura: boolean | null;
+  quality: string | null;
+  finish: string | null;
+  language: string | null;
+  url: string | null;
 }
 @Injectable({ providedIn: 'root' })
 export class PricesService {

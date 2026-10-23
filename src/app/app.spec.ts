@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { registerLocaleData } from '@angular/common';
 import pt from '@angular/common/locales/pt';
 import { App } from './app';
-import { Offer, SearchResult } from './prices.service';
+import { Offer, SearchResult, Auction } from './prices.service';
 
 registerLocaleData(pt);
 const offer = (price: number | null, stock: number | null = 1): Offer => ({
@@ -51,6 +51,47 @@ describe('Busca de ofertas', () => {
     fixture.detectChanges();
   });
   afterEach(() => http.verify());
+
+  it('mostra leilões abaixo das lojas sem incluí-los nos resumos de preços e estoque', () => {
+    const auction: Auction = {
+      auctionId: 1,
+      title: 'Pikachu promocional',
+      bidPrice: 1000,
+      fixedPrice: 1200,
+      bidIncrement: 50,
+      bids: 0,
+      endsAt: '2026-10-23T14:06:02.000Z',
+      seller: 'Vini94',
+      sellerUrl: 'https://www.ligapokemon.com.br/?view=user&nick=Vini94',
+      state: 'RJ',
+      referencesCount: 0,
+      positivePercent: null,
+      acceptsLigaSegura: true,
+      quality: 'NM',
+      finish: 'Foil Promo',
+      language: 'Japonês',
+      url: 'https://www.ligapokemon.com.br/?view=leilao/view&id=1',
+    };
+    app.result.set({
+      ...result([]),
+      auctions: [auction, { ...auction, auctionId: 2, bidPrice: null, fixedPrice: 330 }],
+      totalAuctions: 2,
+    });
+    fixture.detectChanges();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Nenhuma oferta de loja encontrada');
+    expect(fixture.nativeElement.querySelectorAll('.auction-row')).toHaveLength(2);
+    expect(fixture.nativeElement.querySelector('tbody tr')).toBeNull();
+    expect(text).toContain('Lance inicial');
+    expect(text).toContain('1.000,00');
+    expect(text).toContain('330,00');
+    expect(text).toContain('23/10/2026, 11:06');
+    expect(app.stats()).toMatchObject({ min: null, average: null, stock: 0, stores: 0 });
+    expect(app.filterOptions().language).toEqual(['Japonês']);
+    app.result.set(result([offer(10)]));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.auctions-panel')).toBeNull();
+  });
 
   it('monta as opções da busca completa e preserva opções após filtrar e zerar resultados', () => {
     const allOffers = [

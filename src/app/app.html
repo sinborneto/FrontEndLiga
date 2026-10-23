@@ -144,7 +144,10 @@
       loading()
         ? 'Consultando ofertas, aguarde.'
         : result()
-          ? result()!.offers.length + ' ofertas encontradas.'
+          ? result()!.offers.length +
+            ' ofertas de lojas e ' +
+            auctions().length +
+            ' leilões encontrados.'
           : ''
     }}
   </div>
@@ -265,7 +268,11 @@
             }
           </div>
         </div>
-        <span class="result-count">{{ result.offers.length }} ofertas encontradas</span>
+        <span class="result-count"
+          >{{ result.offers.length }} ofertas de lojas{{
+            auctions().length ? ' · ' + auctions().length + ' leilões' : ''
+          }}</span
+        >
       </div>
       <div class="stats-grid">
         <div class="stat">
@@ -316,7 +323,10 @@
           <svg aria-hidden="true"><use href="#filter" /></svg>
           <div>
             <h3 id="offer-filters-heading">Filtrar ofertas</h3>
-            <p>Refine os resultados por preço, estoque e características da carta.</p>
+            <p>
+              Refine os resultados. Preço e estoque se aplicam às lojas; os demais filtros também
+              aos leilões.
+            </p>
           </div>
           <span class="filter-expand-action"
             ><span class="when-closed">Mostrar filtros +</span
@@ -529,11 +539,24 @@
         } @else {
           <div class="empty-results">
             <svg><use href="#search" /></svg>
-            <h3>Nenhuma oferta com esses filtros</h3>
-            <p>Experimente ampliar a faixa de preço ou remover algum filtro e buscar novamente.</p>
+            <h3>
+              {{
+                auctions().length
+                  ? 'Nenhuma oferta de loja encontrada'
+                  : 'Nenhuma oferta com esses filtros'
+              }}
+            </h3>
+            <p>
+              {{
+                auctions().length
+                  ? 'Confira os leilões disponíveis abaixo.'
+                  : 'Experimente ampliar a faixa de preço ou remover algum filtro e buscar novamente.'
+              }}
+            </p>
           </div>
         }
       </div>
+      <app-auctions [auctions]="auctions()" />
     </section>
   } @else if (loading()) {
     <section class="loading-panel" role="status">
