@@ -6,12 +6,14 @@ import { finalize, TimeoutError } from 'rxjs';
 import { PricesService, SearchQuery, SearchResult, Offer, Auction } from './prices.service';
 import { MultiSelect } from './multi-select';
 import { Auctions } from './auctions';
+import { CardChoices, CardChoice } from './card-choices';
+import { AsyncImage } from './async-image';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-price-search',
-  imports: [FormsModule, CurrencyPipe, DatePipe, MultiSelect, Auctions],
+  imports: [FormsModule, CurrencyPipe, DatePipe, MultiSelect, Auctions, CardChoices, AsyncImage],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -62,7 +64,8 @@ export class App {
     };
   });
   readonly error = signal('');
-  readonly editionChoices = signal<Array<{ name: string; number: string; edition: string }>>([]);
+  readonly editionChoices = signal<CardChoice[]>([]);
+  readonly nextChoicesCursor = signal<string | null>(null);
   readonly validation = signal('');
   readonly sort = signal('price_asc');
   readonly page = signal(1);
@@ -120,7 +123,10 @@ export class App {
       this.validation.set('Informe o nome da carta para buscar.');
       return;
     }
-    if (query.number && !/^\d+(?:\/\d+)?$/.test(query.number.trim())) {
+    if (
+      query.number &&
+      !/^(?=[A-Za-z0-9/∞]*\d)[A-Za-z0-9]+(?:\/(?:[A-Za-z0-9]+|∞))?$/.test(query.number.trim())
+    ) {
       this.validation.set('Use um número como 132 ou 132/128.');
       return;
     }
@@ -141,6 +147,7 @@ export class App {
     this.loading.set(true);
     this.failedStoreLogos.set(new Set());
     this.editionChoices.set([]);
+    this.nextChoicesCursor.set(null);
     this.imageFailed.set(false);
     this.result.set(null);
     this.error.set('');
@@ -161,6 +168,11 @@ export class App {
             );
           else if (error instanceof HttpErrorResponse) {
             if (error.status === 409 && Array.isArray(error.error?.details)) {
+              this.nextChoicesCursor.set(
+                typeof error.error?.pagination?.nextCursor === 'string'
+                  ? error.error.pagination.nextCursor
+                  : null,
+              );
               this.editionChoices.set(
                 error.error.details.flatMap((item: unknown) => {
                   if (
@@ -173,7 +185,37 @@ export class App {
                     typeof item.number === 'string' &&
                     typeof item.edition === 'string'
                   ) {
-                    return [{ name: item.name, number: item.number, edition: item.edition }];
+                    return [
+                      {
+                        name: item.name,
+                        number: item.number,
+                        edition: item.edition,
+                        kind:
+                          'kind' in item && item.kind === 'product'
+                            ? ('product' as const)
+                            : ('card' as const),
+                        available:
+                          'available' in item && typeof item.available === 'boolean'
+                            ? item.available
+                            : null,
+                        url:
+                          'url' in item && typeof item.url === 'string'
+                            ? this.safeUrl(item.url)
+                            : null,
+                        displayName:
+                          'displayName' in item && typeof item.displayName === 'string'
+                            ? item.displayName
+                            : undefined,
+                        editionName:
+                          'editionName' in item && typeof item.editionName === 'string'
+                            ? item.editionName
+                            : null,
+                        imageUrl:
+                          'imageUrl' in item && typeof item.imageUrl === 'string'
+                            ? this.safeImageUrl(item.imageUrl)
+                            : null,
+                      },
+                    ];
                   }
                   return [];
                 }),
@@ -191,8 +233,11 @@ export class App {
             };
             this.error.set(
               this.editionChoices().length
-                ? 'As variações de numeração encontraram edições diferentes. Escolha a carta desejada abaixo.'
-                : (messages[error.status] ?? 'Não foi possível realizar a busca. Tente novamente.'),
+                ? 'Escolha a versão da carta para consultar as ofertas.'
+                : error.error?.error === 'PORTAL_RATE_LIMITED'
+                  ? 'A Liga limitou temporariamente as consultas. Aguarde alguns minutos antes de tentar novamente.'
+                  : (messages[error.status] ??
+                    'Não foi possível realizar a busca. Tente novamente.'),
             );
           } else this.error.set('A resposta da API não pôde ser processada. Tente novamente.');
         },
@@ -217,7 +262,12 @@ export class App {
     this.sort.set(value);
     this.page.set(1);
   }
-  chooseEdition(card: { name: string; number: string; edition: string }): void {
+  chooseEdition(card: CardChoice): void {
+    if (card.kind === 'product') {
+      const url = this.safeUrl(card.url);
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
     this.query = { ...this.query, card: card.name, number: card.number, edition: card.edition };
     this.search();
   }

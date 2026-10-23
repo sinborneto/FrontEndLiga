@@ -1190,17 +1190,6 @@ tr:hover td {
     max-height: 72dvh;
   }
 }
-.edition-choices {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin-top: 14px;
-}
-.edition-choices .clear-button {
-  margin: 0;
-  white-space: normal;
-  width: auto;
-}
 .store-logo {
   display: block;
   width: 84px;

@@ -65,6 +65,28 @@ svg {
   white-space: nowrap;
   border: 0;
 }
+.async-image-pending {
+  visibility: hidden;
+}
+.image-loading {
+  position: relative;
+}
+.image-loading::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 5px;
+  background: #e9eee2;
+  pointer-events: none;
+}
+.store-cell.image-loading::after {
+  inset: auto;
+  left: 0;
+  top: 50%;
+  width: 84px;
+  height: 32px;
+  transform: translateY(-50%);
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -13,11 +13,17 @@
     </section>
   }
   @if (loading()) {
-    <section class="status" role="status">
-      <span class="spinner"></span>
-      <h2>Carregando {{ routeLabel() }}…</h2>
-      <p>Consultando o catálogo da Liga Pokémon.</p>
-    </section>
+    <p class="loading-caption" role="status">Carregando {{ routeLabel() }}…</p>
+    <div
+      class="skeleton-catalog"
+      [class.skeleton-card-grid]="routeLabel() !== 'edições'"
+      aria-busy="true"
+    >
+      <app-skeleton-items
+        [count]="routeLabel() === 'edições' ? 4 : 12"
+        [mode]="routeLabel() === 'edições' ? 'editions' : 'cards'"
+      />
+    </div>
   } @else if (error()) {
     <section class="status" role="alert">
       <h2>{{ error() }}</h2>
@@ -61,7 +67,7 @@
               type="search"
               placeholder="Ex.: Pikachu ou 025/128"
               [ngModel]="name()"
-              (ngModelChange)="name.set($event); limit.set(24)"
+              (ngModelChange)="name.set($event); refreshCards()"
           /></label>
           @for (
             facet of [
@@ -138,10 +144,14 @@
               >
                 @if (card.imageUrl && !failedImages().has(card.id)) {
                   <img
-                    [src]="card.imageUrl"
+                    appAsyncImage
+                    [src]="imageSource(card)"
                     [alt]="card.name + ' (' + card.number + ')'"
                     loading="lazy"
-                    (error)="imageFailed(card.id)"
+                    decoding="async"
+                    width="220"
+                    height="308"
+                    (error)="cardImageFailed(card.id)"
                   />
                 } @else {
                   <span class="missing-image">Imagem indisponível</span>
@@ -182,18 +192,33 @@
               </div>
             </article>
           } @empty {
-            <div class="empty">
-              <h2>Nenhuma carta encontrada</h2>
-              <p>Tente outro nome ou ajuste os filtros.</p>
-              <button class="secondary" (click)="clearFilters()">Limpar filtros</button>
-            </div>
+            @if (!loadingCards()) {
+              <div class="empty">
+                <h2>Nenhuma carta encontrada</h2>
+                <p>Tente outro nome ou ajuste os filtros.</p>
+                <button class="secondary" (click)="clearFilters()">Limpar filtros</button>
+              </div>
+            }
+          }
+          @if (loadingCards()) {
+            <app-skeleton-items [count]="cardTarget() - visibleCards().length" />
           }
         </div>
         @if (visibleCards().length < filteredCards().length) {
-          <button class="load-more" (click)="limit.update(addPage)">
-            Mostrar mais cartas
-            <span>{{ visibleCards().length }} / {{ filteredCards().length }}</span>
-          </button>
+          <div
+            appLoadMore
+            [loadMoreRefresh]="visibleCards().length"
+            (nearEnd)="loadCards()"
+            class="catalog-sentinel"
+          >
+            @if (loadingCards()) {
+              <p role="status" class="loading-caption">Carregando mais cartas…</p>
+            }
+            <button class="load-more" [disabled]="loadingCards()" (click)="loadCards()">
+              Mostrar mais cartas
+              <span>{{ visibleCards().length }} / {{ filteredCards().length }}</span>
+            </button>
+          </div>
         }
         <p class="note">
           Dados da Liga Pokémon · Preços podem mudar. Consulte as ofertas para conferir estoque e
@@ -270,9 +295,22 @@
             }
           </div>
           @if (groupRows(group).length < group.editions.length) {
-            <button class="show-more" (click)="expandYear(group.key)">
-              Mostrar todas as {{ group.editions.length }} edições +
-            </button>
+            <div
+              appLoadMore
+              [loadMoreRefresh]="groupRows(group).length"
+              (nearEnd)="expandYear(group.key)"
+            >
+              @if (loadingGroup() === group.key) {
+                <div class="edition-row-skeleton" role="status">Carregando edições…</div>
+              }
+              <button
+                class="show-more"
+                [disabled]="loadingGroup() === group.key"
+                (click)="expandYear(group.key)"
+              >
+                Mostrar mais edições · {{ groupRows(group).length }} / {{ group.editions.length }}
+              </button>
+            </div>
           }
         </section>
       } @empty {
@@ -281,11 +319,24 @@
           <p>Tente outro nome, sigla ou ano.</p>
         </div>
       }
+      @if (loadingYears()) {
+        <app-skeleton-items [count]="2" mode="editions" />
+      }
     </div>
-    @if (
-      !allYears() && !editionSearch() && !year() && editionOrder() === 'year' && years().length > 6
-    ) {
-      <button class="load-more" (click)="allYears.set(true)">Explorar anos anteriores ↓</button>
+    @if (editionOrder() === 'year' && groups().length < totalYearGroups()) {
+      <div
+        appLoadMore
+        [loadMoreRefresh]="groups().length"
+        (nearEnd)="loadYears()"
+        class="catalog-sentinel"
+      >
+        @if (loadingYears()) {
+          <p role="status" class="loading-caption">Carregando mais edições…</p>
+        }
+        <button class="load-more" [disabled]="loadingYears()" (click)="loadYears()">
+          Explorar anos anteriores ↓
+        </button>
+      </div>
     }
     <p class="note">
       Catálogo da

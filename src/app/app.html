@@ -137,31 +137,20 @@
           : ''
     }}
   </div>
-  @if (error()) {
+  @if (editionChoices().length) {
+    <app-card-choices
+      [choices]="editionChoices()"
+      [nextCursor]="nextChoicesCursor()"
+      (selected)="chooseEdition($event)"
+    />
+  } @else if (error()) {
     <section class="error-panel" role="alert">
       <span class="error-icon">!</span>
       <div>
-        <h2>
-          {{
-            editionChoices().length
-              ? 'Escolha a edição da carta'
-              : 'Não foi possível concluir a busca'
-          }}
-        </h2>
+        <h2>Não foi possível concluir a busca</h2>
         <p>{{ error() }}</p>
-        @if (editionChoices().length) {
-          <div class="edition-choices">
-            @for (card of editionChoices(); track card.edition + ':' + card.number) {
-              <button class="clear-button" type="button" (click)="chooseEdition(card)">
-                {{ card.name }} ({{ card.number }}) · {{ card.edition }}
-              </button>
-            }
-          </div>
-        }
       </div>
-      @if (!editionChoices().length) {
-        <button class="clear-button" type="button" (click)="search()">Tentar novamente ↗</button>
-      }
+      <button class="clear-button" type="button" (click)="search()">Tentar novamente ↗</button>
     </section>
   }
   @if (result(); as result) {
@@ -424,12 +413,13 @@
                           as logoUrl
                         ) {
                           <img
+                            appAsyncImage
                             class="store-logo"
                             [src]="logoUrl"
                             [alt]="'Logo de ' + (offer.store || 'loja')"
                             width="84"
                             height="32"
-                            loading="lazy"
+                            loading="eager"
                             decoding="async"
                             referrerpolicy="no-referrer"
                             (error)="storeLogoFailed(logoUrl)"

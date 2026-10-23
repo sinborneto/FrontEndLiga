@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { timeout } from 'rxjs';
+import type { CardChoice } from './card-choices';
 
 export interface SearchQuery {
   card: string;
@@ -74,6 +75,13 @@ export interface Auction {
 @Injectable({ providedIn: 'root' })
 export class PricesService {
   private readonly http = inject(HttpClient);
+  searchPage(cursor: string) {
+    return this.http
+      .get<{ items: CardChoice[]; nextCursor: string | null }>('/api/cards/search-page', {
+        params: { cursor },
+      })
+      .pipe(timeout(30000));
+  }
   search(query: SearchQuery) {
     let params = new HttpParams().set('sort', 'price_asc');
     for (const [key, value] of Object.entries(query)) {

@@ -86,6 +86,10 @@ describe('Catálogo de edições', () => {
       .expectOne('/api/editions/804/cards')
       .flush({ edition, cards, collectedAt: '2026-10-23T12:00:00.000Z' });
     harness.detectChanges();
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(catalog.visibleCards().length).toBe(cards.length);
+    });
   }
   it('busca edições por nome sem acentos, sigla e ano, incluindo subconjuntos', () => {
     expect(catalog.editions().length).toBe(3);

@@ -1,4 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  DestroyRef,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -15,6 +22,11 @@ import {
   map,
 } from 'rxjs';
 import { CatalogCard, CatalogService, Edition, EditionCards } from './catalog.service';
+import { LoadMore } from './load-more';
+import { SkeletonItems } from './skeleton-items';
+import { ProgressiveRender } from './progressive-render';
+import { AsyncImage } from './async-image';
+import { thumbnailUrl } from './thumbnail';
 
 export const catalogText = (value: string) =>
   value
@@ -24,7 +36,8 @@ export const catalogText = (value: string) =>
     .trim();
 @Component({
   selector: 'app-catalog',
-  imports: [FormsModule, RouterLink, CurrencyPipe, DatePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule, RouterLink, CurrencyPipe, DatePipe, LoadMore, SkeletonItems, AsyncImage],
   templateUrl: './catalog.html',
   styleUrl: './catalog.css',
 })
@@ -40,15 +53,33 @@ export class Catalog {
   readonly year = signal('');
   readonly language = signal('pt');
   readonly editionOrder = signal('year');
-  readonly expandedYears = signal(new Set<string>());
-  readonly allYears = signal(false);
+  readonly groupLimits = signal<Record<string, number>>({});
+  readonly yearLimit = signal(4);
+  readonly loadingCards = signal(false);
+  readonly loadingYears = signal(false);
+  readonly loadingGroup = signal('');
+  private readonly cardRenderer = new ProgressiveRender();
+  private readonly yearRenderer = new ProgressiveRender();
+  private readonly groupRenderer = new ProgressiveRender();
+  readonly cardTarget = signal(20);
   readonly name = signal('');
   readonly rarities = signal<string[]>([]);
   readonly energies = signal<string[]>([]);
   readonly order = signal('name');
   readonly view = signal('grid');
-  readonly limit = signal(24);
+  readonly limit = signal(0);
   readonly failedImages = signal(new Set<string>());
+  readonly failedThumbnails = signal(new Set<string>());
+  imageSource(card: CatalogCard) {
+    return this.failedThumbnails().has(card.id) ? card.imageUrl! : thumbnailUrl(card.imageUrl!);
+  }
+  cardImageFailed(id: string) {
+    if (!this.failedThumbnails().has(id)) {
+      this.failedThumbnails.update((images) => new Set([...images, id]));
+      return;
+    }
+    this.imageFailed(id);
+  }
   readonly years = computed(() =>
     [...new Set(this.editions().map((e) => e.year))].sort((a, b) => b - a),
   );
@@ -60,6 +91,9 @@ export class Catalog {
         (!search || catalogText(`${e.name} ${e.nameEn} ${e.code}`).includes(search)),
     );
   });
+  readonly totalYearGroups = computed(
+    () => new Set(this.matchingEditions().map((e) => e.year)).size,
+  );
   readonly groups = computed(() => {
     const rows = this.matchingEditions();
     if (this.editionOrder() === 'name')
@@ -91,7 +125,7 @@ export class Catalog {
         entries.forEach(append);
         return { key: String(year), title: String(year || 'Sem data'), editions: ordered };
       });
-    return this.allYears() || this.editionSearch() || this.year() ? groups : groups.slice(0, 6);
+    return groups.slice(0, this.yearLimit());
   });
   readonly facets = computed(() => {
     const cards = this.data()?.cards ?? [];
@@ -127,14 +161,15 @@ export class Catalog {
   readonly activeFilters = computed(
     () => this.rarities().length + this.energies().length + (this.name() ? 1 : 0),
   );
-  readonly addPage = (value: number) => value + 24;
   routeLabel() {
     return this.route.snapshot.paramMap.has('id') ? 'cartas da edição' : 'edições';
   }
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.cancelRenders());
     combineLatest([this.route.paramMap, this.retry.pipe(startWith(undefined))])
       .pipe(
         switchMap(([params]) => {
+          this.cancelRenders();
           this.loading.set(true);
           this.error.set('');
           this.data.set(null);
@@ -144,7 +179,10 @@ export class Catalog {
           const id = params.get('id');
           const request = id
             ? this.api.cards(id).pipe(
-                tap((data) => this.data.set(data)),
+                tap((data) => {
+                  this.data.set(data);
+                  this.loadCards();
+                }),
                 map(() => undefined),
               )
             : this.api.editions().pipe(
@@ -174,27 +212,75 @@ export class Catalog {
     return this.language() === 'en' ? edition.nameEn : edition.name;
   }
   groupRows(group: { key: string; editions: Edition[] }) {
-    return this.expandedYears().has(group.key) || !!this.editionSearch()
-      ? group.editions
-      : group.editions.slice(0, 12);
+    return group.editions.slice(0, this.groupLimits()[group.key] ?? 12);
   }
   expandYear(key: string) {
-    this.expandedYears.update((values) => new Set([...values, key]));
+    if (this.loadingGroup()) return;
+    this.loadingGroup.set(key);
+    const target = (this.groupLimits()[key] ?? 12) + 8;
+    this.groupRenderer.run(
+      () => {
+        this.groupLimits.update((limits) => ({
+          ...limits,
+          [key]: Math.min((limits[key] ?? 12) + 2, target),
+        }));
+        return this.groupLimits()[key] < target;
+      },
+      () => this.loadingGroup.set(''),
+    );
+  }
+  loadCards() {
+    if (this.loadingCards() || this.visibleCards().length >= this.filteredCards().length) return;
+    this.loadingCards.set(true);
+    this.cardTarget.set(Math.min(this.limit() + 20, this.filteredCards().length));
+    this.cardRenderer.run(
+      () => {
+        this.limit.update((limit) => Math.min(limit + 2, this.cardTarget()));
+        return this.limit() < this.cardTarget();
+      },
+      () => this.loadingCards.set(false),
+    );
+  }
+  loadYears() {
+    if (this.loadingYears() || this.yearLimit() >= this.totalYearGroups()) return;
+    this.loadingYears.set(true);
+    const target = Math.min(this.yearLimit() + 2, this.totalYearGroups());
+    this.yearRenderer.run(
+      () => {
+        this.yearLimit.update((limit) => Math.min(limit + 1, target));
+        return this.yearLimit() < target;
+      },
+      () => this.loadingYears.set(false),
+    );
+  }
+  private cancelRenders() {
+    this.cardRenderer.cancel();
+    this.yearRenderer.cancel();
+    this.groupRenderer.cancel();
+    this.loadingCards.set(false);
+    this.loadingYears.set(false);
+    this.loadingGroup.set('');
   }
   toggle(field: 'rarities' | 'energies', value: string) {
     this[field].update((selected) =>
       selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value],
     );
-    this.limit.set(24);
+    this.refreshCards();
   }
   clearFilters() {
     this.name.set('');
     this.rarities.set([]);
     this.energies.set([]);
-    this.limit.set(24);
+    this.refreshCards();
   }
   imageFailed(id: string) {
     this.failedImages.update((values) => new Set([...values, id]));
+  }
+  refreshCards() {
+    this.cardRenderer.cancel();
+    this.loadingCards.set(false);
+    this.limit.set(0);
+    this.loadCards();
   }
   offerQuery(card: CatalogCard) {
     return { card: card.nameEn, edition: this.data()!.edition.code, number: card.number };

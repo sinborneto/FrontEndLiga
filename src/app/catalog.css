@@ -1,6 +1,44 @@
 :host {
   display: block;
 }
+.skeleton-catalog {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+.skeleton-catalog.skeleton-card-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.loading-caption {
+  font-size: 12px;
+  color: #8b9981;
+  text-align: center;
+  min-height: 20px;
+}
+.catalog-sentinel {
+  min-height: 100px;
+}
+.edition-row-skeleton {
+  padding: 20px;
+  color: #8b9981;
+  font-size: 11px;
+  background: #f4f7ee;
+}
+.cards-grid .card {
+  contain: layout paint style;
+}
+.card-image img {
+  filter: none !important;
+}
+@media (max-width: 600px) {
+  .skeleton-catalog {
+    grid-template-columns: 1fr;
+  }
+  .skeleton-catalog.skeleton-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 main {
   max-width: 1180px;
   margin: auto;

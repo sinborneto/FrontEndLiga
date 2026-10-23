@@ -173,7 +173,7 @@ describe('Busca de ofertas', () => {
     expect(app.failedStoreLogos().size).toBe(0);
   });
 
-  it('permite escolher entre edições encontradas com zeros à esquerda', () => {
+  it('permite escolher entre edições encontradas com zeros à esquerda', async () => {
     app.query.card = 'Pikachu';
     app.query.number = '1/9';
     app.query.quality = ['NM'];
@@ -184,8 +184,20 @@ describe('Busca de ofertas', () => {
         {
           error: 'AMBIGUOUS_CARD',
           details: [
-            { name: 'Pikachu', number: '1/9', edition: 'WC' },
-            { name: 'Pikachu', number: '001/009', edition: 'PWCP' },
+            {
+              name: 'Pikachu',
+              number: '1/9',
+              edition: 'WC',
+              imageUrl: 'https://repositorio.sbrauble.com/wc.jpg',
+              editionName: 'World Collection',
+            },
+            {
+              name: 'Pikachu',
+              number: '001/009',
+              edition: 'PWCP',
+              imageUrl: 'https://repositorio.sbrauble.com/pwcp.jpg',
+              editionName: 'Pokémon World Collection',
+            },
             { unexpected: true },
           ],
         },
@@ -193,6 +205,15 @@ describe('Busca de ofertas', () => {
       );
     fixture.detectChanges();
     expect(app.editionChoices()).toHaveLength(2);
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('.edition-choices button')).toHaveLength(2);
+    });
+    expect(fixture.nativeElement.querySelector('.error-panel')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.edition-choices img')).toHaveLength(2);
+    expect(fixture.nativeElement.querySelector('.choices-panel').textContent).toContain(
+      'World Collection',
+    );
     const buttons = fixture.nativeElement.querySelectorAll('.edition-choices button');
     expect(buttons[1].textContent).toContain('PWCP');
     buttons[1].click();
