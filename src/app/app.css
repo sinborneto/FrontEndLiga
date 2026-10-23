@@ -1425,3 +1425,24 @@ tr:hover td {
   font-weight: 400;
   color: #7d8974;
 }
+.edition-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+}
+.edition-choices .clear-button {
+  margin: 0;
+  white-space: normal;
+  width: auto;
+}
+.store-logo {
+  display: block;
+  width: 84px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border: 1px solid #e6ebdf;
+  border-radius: 5px;
+  background: #fff;
+}

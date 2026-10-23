@@ -22,8 +22,13 @@ export class App {
   private readonly prices = inject(PricesService);
   readonly loading = signal(false);
   readonly imageFailed = signal(false);
+  readonly failedStoreLogos = signal(new Set<string>());
+  storeLogoFailed(url: string): void {
+    this.failedStoreLogos.update((failed) => new Set([...failed, url]));
+  }
   readonly result = signal<SearchResult | null>(null);
   readonly error = signal('');
+  readonly editionChoices = signal<Array<{ name: string; number: string; edition: string }>>([]);
   readonly validation = signal('');
   readonly sort = signal('price_asc');
   readonly page = signal(1);
@@ -125,6 +130,8 @@ export class App {
       return;
     }
     this.loading.set(true);
+    this.failedStoreLogos.set(new Set());
+    this.editionChoices.set([]);
     this.imageFailed.set(false);
     this.result.set(null);
     this.error.set('');
@@ -140,6 +147,25 @@ export class App {
               'A consulta demorou mais que o esperado. Tente novamente em alguns instantes.',
             );
           else if (error instanceof HttpErrorResponse) {
+            if (error.status === 409 && Array.isArray(error.error?.details)) {
+              this.editionChoices.set(
+                error.error.details.flatMap((item: unknown) => {
+                  if (
+                    item &&
+                    typeof item === 'object' &&
+                    'name' in item &&
+                    'number' in item &&
+                    'edition' in item &&
+                    typeof item.name === 'string' &&
+                    typeof item.number === 'string' &&
+                    typeof item.edition === 'string'
+                  ) {
+                    return [{ name: item.name, number: item.number, edition: item.edition }];
+                  }
+                  return [];
+                }),
+              );
+            }
             const messages: Record<number, string> = {
               0: 'Não foi possível conectar à API. Verifique se o backend está rodando na porta 3000.',
               400: 'Confira o nome da carta e os filtros informados.',
@@ -151,7 +177,9 @@ export class App {
               504: 'O portal demorou para responder. Tente novamente em alguns instantes.',
             };
             this.error.set(
-              messages[error.status] ?? 'Não foi possível realizar a busca. Tente novamente.',
+              this.editionChoices().length
+                ? 'As variações de numeração encontraram edições diferentes. Escolha a carta desejada abaixo.'
+                : (messages[error.status] ?? 'Não foi possível realizar a busca. Tente novamente.'),
             );
           } else this.error.set('A resposta da API não pôde ser processada. Tente novamente.');
         },
@@ -162,6 +190,8 @@ export class App {
     this.search();
   }
   clear(): void {
+    this.failedStoreLogos.set(new Set());
+    this.editionChoices.set([]);
     this.imageFailed.set(false);
     this.query = this.emptyQuery();
     this.result.set(null);
@@ -172,6 +202,10 @@ export class App {
   changeSort(value: string): void {
     this.sort.set(value);
     this.page.set(1);
+  }
+  chooseEdition(card: { name: string; number: string; edition: string }): void {
+    this.query = { ...this.query, card: card.name, number: card.number, edition: card.edition };
+    this.search();
   }
   safeUrl(url: string | null | undefined): string | null {
     if (!url) return null;

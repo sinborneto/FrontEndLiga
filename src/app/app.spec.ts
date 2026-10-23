@@ -52,6 +52,56 @@ describe('Busca de ofertas', () => {
   });
   afterEach(() => http.verify());
 
+  it('exibe o logo da loja e usa iniciais se o arquivo falhar', () => {
+    const withLogo = {
+      ...offer(10),
+      storeLogoUrl: 'https://repositorio.sbrauble.com/arquivos/up/ecom/comparador/loja.jpg',
+    };
+    app.result.set(result([withLogo, { ...offer(20), storeLogoUrl: null }]));
+    fixture.detectChanges();
+    const image = fixture.nativeElement.querySelector('.store-logo') as HTMLImageElement;
+    expect(image.src).toBe(withLogo.storeLogoUrl);
+    expect(image.alt).toContain('Loja teste');
+    expect(fixture.nativeElement.querySelectorAll('.store-avatar')).toHaveLength(1);
+    image.dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.store-logo')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.store-avatar')).toHaveLength(2);
+    app.clear();
+    expect(app.failedStoreLogos().size).toBe(0);
+  });
+
+  it('permite escolher entre edições encontradas com zeros à esquerda', () => {
+    app.query.card = 'Pikachu';
+    app.query.number = '1/9';
+    app.query.quality = ['NM'];
+    app.search();
+    http
+      .expectOne((r) => r.url === '/api/cards/prices')
+      .flush(
+        {
+          error: 'AMBIGUOUS_CARD',
+          details: [
+            { name: 'Pikachu', number: '1/9', edition: 'WC' },
+            { name: 'Pikachu', number: '001/009', edition: 'PWCP' },
+            { unexpected: true },
+          ],
+        },
+        { status: 409, statusText: 'Conflict' },
+      );
+    fixture.detectChanges();
+    expect(app.editionChoices()).toHaveLength(2);
+    const buttons = fixture.nativeElement.querySelectorAll('.edition-choices button');
+    expect(buttons[1].textContent).toContain('PWCP');
+    buttons[1].click();
+    const selected = http.expectOne((r) => r.url === '/api/cards/prices');
+    expect(selected.request.params.get('number')).toBe('001/009');
+    expect(selected.request.params.get('edition')).toBe('PWCP');
+    expect(selected.request.params.get('quality')).toBe('NM');
+    selected.flush(result([]));
+    expect(app.editionChoices()).toEqual([]);
+  });
+
   it('fecha as condições ao clicar fora ou pressionar Esc e preserva a seleção', () => {
     app.advanced.set(true);
     fixture.detectChanges();

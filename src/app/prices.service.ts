@@ -18,6 +18,7 @@ export interface Offer {
   offerId: number | null;
   storeId: number | null;
   store: string | null;
+  storeLogoUrl?: string | null;
   city: string | null;
   state: string | null;
   price: number | null;

@@ -29,6 +29,10 @@ Se a porta estiver ocupada, use `npm start -- --port 4201`.
 
 ## Funcionalidades
 
+- Logotipos das lojas junto ao nome na tabela, com carregamento sob demanda e iniciais como alternativa quando não há imagem ou o arquivo falha.
+
+- A API testa numerações com 1, 2 e 3 dígitos, ignorando zeros à esquerda nas comparações. Quando isso encontra edições diferentes, a tela apresenta botões para escolher a carta correta e preserva os demais filtros.
+
 - Seletor de condição com múltiplas escolhas: M, NM, SP, MP, HP e D. Nenhuma marcada inclui todas; a seleção é aplicada ao clicar em “Buscar ofertas”.
 
 - Imagem da carta identificada pela API, com prévia maior e ampliação ao clicar, além do botão “Ver carta na Liga Pokémon” ao lado do nome. A visualização ampliada fecha pelo botão, Esc ou clique fora da janela. A imagem tem descrição acessível e fallback quando ausente ou com erro. O backend deve estar atualizado para retornar `card.imageUrl` e `card.url`.

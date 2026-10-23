@@ -248,10 +248,27 @@
     <section class="error-panel" role="alert">
       <span class="error-icon">!</span>
       <div>
-        <h2>Não foi possível concluir a busca</h2>
+        <h2>
+          {{
+            editionChoices().length
+              ? 'Escolha a edição da carta'
+              : 'Não foi possível concluir a busca'
+          }}
+        </h2>
         <p>{{ error() }}</p>
+        @if (editionChoices().length) {
+          <div class="edition-choices">
+            @for (card of editionChoices(); track card.edition + ':' + card.number) {
+              <button class="clear-button" type="button" (click)="chooseEdition(card)">
+                {{ card.name }} ({{ card.number }}) · {{ card.edition }}
+              </button>
+            }
+          </div>
+        }
       </div>
-      <button class="clear-button" type="button" (click)="search()">Tentar novamente ↗</button>
+      @if (!editionChoices().length) {
+        <button class="clear-button" type="button" (click)="search()">Tentar novamente ↗</button>
+      }
     </section>
   }
   @if (result(); as result) {
@@ -435,9 +452,27 @@
                   <tr>
                     <td>
                       <div class="store-cell">
-                        <span class="store-avatar" aria-hidden="true">{{
-                          (offer.store || '?').slice(0, 2).toUpperCase()
-                        }}</span>
+                        @if (
+                          !failedStoreLogos().has(offer.storeLogoUrl || '') &&
+                            safeImageUrl(offer.storeLogoUrl);
+                          as logoUrl
+                        ) {
+                          <img
+                            class="store-logo"
+                            [src]="logoUrl"
+                            [alt]="'Logo de ' + (offer.store || 'loja')"
+                            width="84"
+                            height="32"
+                            loading="lazy"
+                            decoding="async"
+                            referrerpolicy="no-referrer"
+                            (error)="storeLogoFailed(logoUrl)"
+                          />
+                        } @else {
+                          <span class="store-avatar" aria-hidden="true">{{
+                            (offer.store || '?').slice(0, 2).toUpperCase()
+                          }}</span>
+                        }
                         <div>
                           <strong>{{ offer.store || 'Loja não informada' }}</strong
                           ><small
