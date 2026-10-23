@@ -30,6 +30,44 @@ describe('Renderização progressiva', () => {
     expect(created).toBe(8);
     expect(done).toHaveBeenCalledOnce();
   });
+  it('divide o orçamento entre listas simultâneas em vez de montar todas no mesmo frame', () => {
+    const frames = new Map<number, FrameRequestCallback>();
+    let id = 0;
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.set(++id, callback);
+      return id;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (frame: number) => frames.delete(frame));
+    vi.stubGlobal('requestIdleCallback', undefined);
+    const a = new ProgressiveRender();
+    const b = new ProgressiveRender();
+    let first = 0,
+      second = 0;
+    a.run(
+      () => {
+        first += 2;
+        return first < 20;
+      },
+      () => {},
+    );
+    b.run(
+      () => {
+        second += 2;
+        return second < 20;
+      },
+      () => {},
+    );
+    let iterations = 0;
+    while (frames.size && iterations++ < 50) {
+      const [frame, callback] = [...frames][0];
+      frames.delete(frame);
+      const previous = first + second;
+      callback(iterations * 16);
+      expect(first + second - previous).toBeLessThanOrEqual(2);
+    }
+    expect(first).toBe(20);
+    expect(second).toBe(20);
+  });
   it('cancela a criação pendente quando a lista é substituída ou destruída', () => {
     const frames: FrameRequestCallback[] = [];
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {

@@ -20,7 +20,7 @@
       aria-busy="true"
     >
       <app-skeleton-items
-        [count]="routeLabel() === 'edições' ? 4 : 12"
+        [count]="routeLabel() === 'edições' ? 2 : 20"
         [mode]="routeLabel() === 'edições' ? 'editions' : 'cards'"
       />
     </div>
@@ -110,7 +110,10 @@
           </p>
           <div class="toolbar-controls">
             <label
-              >Ordenar por<select [ngModel]="order()" (ngModelChange)="order.set($event)">
+              >Ordenar por<select
+                [ngModel]="order()"
+                (ngModelChange)="order.set($event); refreshCards()"
+              >
                 <option value="name">Nome A–Z</option>
                 <option value="number">Número da carta</option>
                 <option value="price">Menor preço</option>
@@ -135,62 +138,11 @@
         </div>
         <div class="cards-grid" [class.list]="view() === 'list'">
           @for (card of visibleCards(); track card.id) {
-            <article class="card">
-              <a
-                class="card-image"
-                [routerLink]="['/']"
-                [queryParams]="offerQuery(card)"
-                [attr.aria-label]="'Ver ofertas de ' + card.name + ' ' + card.number"
-              >
-                @if (card.imageUrl && !failedImages().has(card.id)) {
-                  <img
-                    appAsyncImage
-                    [src]="imageSource(card)"
-                    [alt]="card.name + ' (' + card.number + ')'"
-                    loading="lazy"
-                    decoding="async"
-                    width="220"
-                    height="308"
-                    (error)="cardImageFailed(card.id)"
-                  />
-                } @else {
-                  <span class="missing-image">Imagem indisponível</span>
-                }
-              </a>
-              <div class="card-info">
-                <p class="card-number">
-                  {{ result.edition.code }} <span>·</span> {{ card.number }}
-                </p>
-                <h2>{{ card.name }}</h2>
-                <p class="card-attributes">
-                  {{ card.rarity || 'Raridade não informada' }}
-                  @if (card.energies.length) {
-                    <span>·</span> {{ card.energies.join(' / ') }}
-                  }
-                </p>
-                <p class="price">
-                  @if (card.minPrice !== null) {
-                    <small>A partir de</small>
-                    <strong>{{
-                      card.minPrice | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
-                    }}</strong>
-                  } @else {
-                    <small>Preço não informado</small>
-                  }
-                </p>
-                <div class="card-actions">
-                  <a class="primary" routerLink="/" [queryParams]="offerQuery(card)"
-                    >Ver ofertas →</a
-                  ><a
-                    [href]="card.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    [attr.aria-label]="'Ver ' + card.name + ' na Liga'"
-                    >Liga ↗</a
-                  >
-                </div>
-              </div>
-            </article>
+            <app-catalog-card
+              [card]="card"
+              [edition]="result.edition.code"
+              [list]="view() === 'list'"
+            />
           } @empty {
             @if (!loadingCards()) {
               <div class="empty">
@@ -201,13 +153,16 @@
             }
           }
           @if (loadingCards()) {
-            <app-skeleton-items [count]="cardTarget() - visibleCards().length" />
+            <app-skeleton-items
+              [count]="cardTarget() - visibleCards().length"
+              [list]="view() === 'list'"
+            />
           }
         </div>
         @if (visibleCards().length < filteredCards().length) {
           <div
             appLoadMore
-            [loadMoreRefresh]="visibleCards().length"
+            [loadMoreRefresh]="loadingCards() ? -1 : visibleCards().length"
             (nearEnd)="loadCards()"
             class="catalog-sentinel"
           >
@@ -265,54 +220,11 @@
     </div>
     <div class="edition-groups">
       @for (group of groups(); track group.key) {
-        <section class="year-group">
-          <div class="year-heading">
-            <h2>{{ group.title }}</h2>
-            <span>{{ group.editions.length }} edições</span>
-          </div>
-          <div class="edition-rows">
-            @for (edition of groupRows(group); track edition.id) {
-              <a
-                class="edition-row"
-                [class.subset]="edition.parentId && editionOrder() === 'year'"
-                [routerLink]="['/edicoes', edition.id]"
-              >
-                <span class="edition-symbol">
-                  @if (edition.imageUrl && !failedImages().has(edition.id)) {
-                    <img
-                      [src]="edition.imageUrl"
-                      alt=""
-                      loading="lazy"
-                      (error)="imageFailed(edition.id)"
-                    />
-                  } @else {
-                    ◇
-                  }</span
-                ><span class="edition-name"
-                  >{{ editionName(edition) }}<small>{{ edition.code }}</small></span
-                ><span class="edition-arrow" aria-hidden="true">↗</span>
-              </a>
-            }
-          </div>
-          @if (groupRows(group).length < group.editions.length) {
-            <div
-              appLoadMore
-              [loadMoreRefresh]="groupRows(group).length"
-              (nearEnd)="expandYear(group.key)"
-            >
-              @if (loadingGroup() === group.key) {
-                <div class="edition-row-skeleton" role="status">Carregando edições…</div>
-              }
-              <button
-                class="show-more"
-                [disabled]="loadingGroup() === group.key"
-                (click)="expandYear(group.key)"
-              >
-                Mostrar mais edições · {{ groupRows(group).length }} / {{ group.editions.length }}
-              </button>
-            </div>
-          }
-        </section>
+        <app-edition-group
+          [group]="group"
+          [language]="language()"
+          [hierarchical]="editionOrder() === 'year'"
+        />
       } @empty {
         <div class="empty">
           <h2>Nenhuma edição encontrada</h2>
@@ -326,7 +238,7 @@
     @if (editionOrder() === 'year' && groups().length < totalYearGroups()) {
       <div
         appLoadMore
-        [loadMoreRefresh]="groups().length"
+        [loadMoreRefresh]="loadingYears() ? -1 : groups().length"
         (nearEnd)="loadYears()"
         class="catalog-sentinel"
       >

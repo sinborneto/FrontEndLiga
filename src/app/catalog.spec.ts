@@ -8,6 +8,8 @@ import pt from '@angular/common/locales/pt';
 import { Catalog } from './catalog';
 import { App } from './app';
 import { CatalogCard, Edition } from './catalog.service';
+import { By } from '@angular/platform-browser';
+import { EditionGroup } from './edition-group';
 registerLocaleData(pt);
 
 const edition: Edition = {
@@ -91,8 +93,12 @@ describe('Catálogo de edições', () => {
       expect(catalog.visibleCards().length).toBe(cards.length);
     });
   }
-  it('busca edições por nome sem acentos, sigla e ano, incluindo subconjuntos', () => {
+  it('busca edições por nome sem acentos, sigla e ano, incluindo subconjuntos', async () => {
     expect(catalog.editions().length).toBe(3);
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(harness.routeNativeElement!.querySelector('a.subset')).toBeTruthy();
+    });
     expect(harness.routeNativeElement!.querySelector('a.subset')?.getAttribute('href')).toBe(
       '/edicoes/805',
     );
@@ -118,6 +124,60 @@ describe('Catálogo de edições', () => {
     catalog.clearFilters();
     expect(catalog.filteredCards().length).toBe(4);
   });
+  it('monta vinte cartas por lote e mantém os componentes anteriores ao carregar mais', async () => {
+    catalog = await harness.navigateByUrl('/edicoes/804', Catalog);
+    const many = Array.from({ length: 158 }, (_, i) => card(String(i + 1), 'Comum', ['Água'], i));
+    http
+      .expectOne('/api/editions/804/cards')
+      .flush({ edition, cards: many, collectedAt: '2026-10-23T12:00:00.000Z' });
+    harness.detectChanges();
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(catalog.loadingCards()).toBe(false);
+    });
+    expect(harness.routeNativeElement!.querySelectorAll('article.card')).toHaveLength(20);
+    const first = harness.routeNativeElement!.querySelector('article.card');
+    catalog.loadCards();
+    harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelectorAll('.skeleton-item')).toHaveLength(20);
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(catalog.loadingCards()).toBe(false);
+    });
+    expect(harness.routeNativeElement!.querySelectorAll('article.card')).toHaveLength(40);
+    expect(harness.routeNativeElement!.querySelector('article.card')).toBe(first);
+    expect(catalog.filteredCards()).toHaveLength(158);
+  });
+  it('limita a montagem inicial das 811 edições e reutiliza o agrupamento ao mostrar mais anos', async () => {
+    catalog.editions.set(
+      Array.from({ length: 811 }, (_, i) => ({
+        ...edition,
+        id: String(i),
+        year: 2026 - Math.floor(i / 45),
+        parentId: null,
+      })),
+    );
+    harness.detectChanges();
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      const groups = harness.routeDebugElement!.queryAll(By.directive(EditionGroup));
+      expect(groups).toHaveLength(2);
+      expect(groups.every((group) => !(group.componentInstance as EditionGroup).loading())).toBe(
+        true,
+      );
+    });
+    expect(harness.routeNativeElement!.querySelectorAll('.edition-row')).toHaveLength(40);
+    const grouped = catalog.allGroups();
+    const firstGroup = grouped[0];
+    catalog.loadYears();
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(catalog.loadingYears()).toBe(false);
+    });
+    expect(catalog.groups()).toHaveLength(4);
+    expect(catalog.allGroups()).toBe(grouped);
+    expect(catalog.groups()[0]).toBe(firstGroup);
+  });
   it('ordena preços mantendo desconhecidos ao final e passa nome inglês, edição e número à busca', async () => {
     await openCards();
     catalog.order.set('price');
@@ -133,6 +193,19 @@ describe('Catálogo de edições', () => {
     const query = new URL(link.href).searchParams;
     expect(query.get('card')).toBe('Alolan Exeggutor');
     expect(query.get('number')).toBe('002/128');
+  });
+  it('volta à lista e reabre a edição sem consultar novamente a API', async () => {
+    await openCards();
+    catalog = await harness.navigateByUrl('/edicoes', Catalog);
+    harness.detectChanges();
+    expect(catalog.editions()).toHaveLength(3);
+    expect(catalog.loading()).toBe(false);
+    http.expectNone('/api/editions');
+    catalog = await harness.navigateByUrl('/edicoes/804', Catalog);
+    harness.detectChanges();
+    expect(catalog.data()?.cards).toHaveLength(4);
+    expect(catalog.loading()).toBe(false);
+    http.expectNone('/api/editions/804/cards');
   });
   it('exibe erro recuperável para edição inexistente e permite tentar novamente', async () => {
     catalog = await harness.navigateByUrl('/edicoes/999', Catalog);

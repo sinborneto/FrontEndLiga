@@ -6,7 +6,7 @@ import {
   DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -25,8 +25,11 @@ import { CatalogCard, CatalogService, Edition, EditionCards } from './catalog.se
 import { LoadMore } from './load-more';
 import { SkeletonItems } from './skeleton-items';
 import { ProgressiveRender } from './progressive-render';
-import { AsyncImage } from './async-image';
-import { thumbnailUrl } from './thumbnail';
+import { CatalogCardItem } from './catalog-card';
+import { EditionGroup } from './edition-group';
+
+const names = new Intl.Collator('pt-BR');
+const numbers = new Intl.Collator('pt-BR', { numeric: true });
 
 export const catalogText = (value: string) =>
   value
@@ -37,7 +40,15 @@ export const catalogText = (value: string) =>
 @Component({
   selector: 'app-catalog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, CurrencyPipe, DatePipe, LoadMore, SkeletonItems, AsyncImage],
+  imports: [
+    FormsModule,
+    RouterLink,
+    DatePipe,
+    LoadMore,
+    SkeletonItems,
+    CatalogCardItem,
+    EditionGroup,
+  ],
   templateUrl: './catalog.html',
   styleUrl: './catalog.css',
 })
@@ -53,14 +64,11 @@ export class Catalog {
   readonly year = signal('');
   readonly language = signal('pt');
   readonly editionOrder = signal('year');
-  readonly groupLimits = signal<Record<string, number>>({});
-  readonly yearLimit = signal(4);
+  readonly yearLimit = signal(2);
   readonly loadingCards = signal(false);
   readonly loadingYears = signal(false);
-  readonly loadingGroup = signal('');
   private readonly cardRenderer = new ProgressiveRender();
   private readonly yearRenderer = new ProgressiveRender();
-  private readonly groupRenderer = new ProgressiveRender();
   readonly cardTarget = signal(20);
   readonly name = signal('');
   readonly rarities = signal<string[]>([]);
@@ -69,17 +77,6 @@ export class Catalog {
   readonly view = signal('grid');
   readonly limit = signal(0);
   readonly failedImages = signal(new Set<string>());
-  readonly failedThumbnails = signal(new Set<string>());
-  imageSource(card: CatalogCard) {
-    return this.failedThumbnails().has(card.id) ? card.imageUrl! : thumbnailUrl(card.imageUrl!);
-  }
-  cardImageFailed(id: string) {
-    if (!this.failedThumbnails().has(id)) {
-      this.failedThumbnails.update((images) => new Set([...images, id]));
-      return;
-    }
-    this.imageFailed(id);
-  }
   readonly years = computed(() =>
     [...new Set(this.editions().map((e) => e.year))].sort((a, b) => b - a),
   );
@@ -94,7 +91,7 @@ export class Catalog {
   readonly totalYearGroups = computed(
     () => new Set(this.matchingEditions().map((e) => e.year)).size,
   );
-  readonly groups = computed(() => {
+  readonly allGroups = computed(() => {
     const rows = this.matchingEditions();
     if (this.editionOrder() === 'name')
       return [
@@ -102,7 +99,7 @@ export class Catalog {
           key: 'all',
           title: 'Todas as edições',
           editions: [...rows].sort((a, b) =>
-            this.editionName(a).localeCompare(this.editionName(b), 'pt-BR'),
+            names.compare(this.editionName(a), this.editionName(b)),
           ),
         },
       ];
@@ -113,20 +110,28 @@ export class Catalog {
           .filter((e) => e.year === year)
           .sort((a, b) => (b.releasedAt ?? '').localeCompare(a.releasedAt ?? ''));
         const ids = new Set(entries.map((e) => e.id));
+        const children = new Map<string, Edition[]>();
+        for (const entry of entries) {
+          if (!entry.parentId) continue;
+          const siblings = children.get(entry.parentId) ?? [];
+          siblings.push(entry);
+          children.set(entry.parentId, siblings);
+        }
         const seen = new Set<string>();
         const ordered: Edition[] = [];
         const append = (entry: Edition) => {
           if (seen.has(entry.id)) return;
           seen.add(entry.id);
           ordered.push(entry);
-          entries.filter((e) => e.parentId === entry.id).forEach(append);
+          children.get(entry.id)?.forEach(append);
         };
         entries.filter((e) => !e.parentId || !ids.has(e.parentId)).forEach(append);
         entries.forEach(append);
         return { key: String(year), title: String(year || 'Sem data'), editions: ordered };
       });
-    return groups.slice(0, this.yearLimit());
+    return groups;
   });
+  readonly groups = computed(() => this.allGroups().slice(0, this.yearLimit()));
   readonly facets = computed(() => {
     const cards = this.data()?.cards ?? [];
     const count = (values: string[]) =>
@@ -149,12 +154,10 @@ export class Catalog {
       )
       .sort((a, b) =>
         this.order() === 'number'
-          ? a.number.localeCompare(b.number, 'pt-BR', { numeric: true })
+          ? numbers.compare(a.number, b.number)
           : this.order() === 'price'
-            ? (a.minPrice ?? Infinity) - (b.minPrice ?? Infinity) ||
-              a.name.localeCompare(b.name, 'pt-BR')
-            : a.name.localeCompare(b.name, 'pt-BR') ||
-              a.number.localeCompare(b.number, 'pt-BR', { numeric: true }),
+            ? (a.minPrice ?? Infinity) - (b.minPrice ?? Infinity) || names.compare(a.name, b.name)
+            : names.compare(a.name, b.name) || numbers.compare(a.number, b.number),
       );
   });
   readonly visibleCards = computed(() => this.filteredCards().slice(0, this.limit()));
@@ -174,6 +177,7 @@ export class Catalog {
           this.error.set('');
           this.data.set(null);
           this.editions.set([]);
+          this.yearLimit.set(2);
           this.clearFilters();
           this.failedImages.set(new Set());
           const id = params.get('id');
@@ -211,24 +215,6 @@ export class Catalog {
   editionName(edition: Edition) {
     return this.language() === 'en' ? edition.nameEn : edition.name;
   }
-  groupRows(group: { key: string; editions: Edition[] }) {
-    return group.editions.slice(0, this.groupLimits()[group.key] ?? 12);
-  }
-  expandYear(key: string) {
-    if (this.loadingGroup()) return;
-    this.loadingGroup.set(key);
-    const target = (this.groupLimits()[key] ?? 12) + 8;
-    this.groupRenderer.run(
-      () => {
-        this.groupLimits.update((limits) => ({
-          ...limits,
-          [key]: Math.min((limits[key] ?? 12) + 2, target),
-        }));
-        return this.groupLimits()[key] < target;
-      },
-      () => this.loadingGroup.set(''),
-    );
-  }
   loadCards() {
     if (this.loadingCards() || this.visibleCards().length >= this.filteredCards().length) return;
     this.loadingCards.set(true);
@@ -256,10 +242,8 @@ export class Catalog {
   private cancelRenders() {
     this.cardRenderer.cancel();
     this.yearRenderer.cancel();
-    this.groupRenderer.cancel();
     this.loadingCards.set(false);
     this.loadingYears.set(false);
-    this.loadingGroup.set('');
   }
   toggle(field: 'rarities' | 'energies', value: string) {
     this[field].update((selected) =>

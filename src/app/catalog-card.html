@@ -1,0 +1,52 @@
+@let item = card();
+<article class="card">
+  <a
+    class="card-image"
+    [routerLink]="['/']"
+    [queryParams]="offerQuery()"
+    [attr.aria-label]="'Ver ofertas de ' + item.name + ' ' + item.number"
+  >
+    @if (item.imageUrl && !failed()) {
+      <img
+        appAsyncImage
+        [src]="imageSource()"
+        [alt]="item.name + ' (' + item.number + ')'"
+        loading="lazy"
+        decoding="async"
+        width="220"
+        height="308"
+        (error)="imageFailed()"
+      />
+    } @else {
+      <span class="missing-image">Imagem indisponível</span>
+    }
+  </a>
+  <div class="card-info">
+    <p class="card-number">{{ edition() }} <span>·</span> {{ item.number }}</p>
+    <h2>{{ item.name }}</h2>
+    <p class="card-attributes">
+      {{ item.rarity || 'Raridade não informada' }}
+      @if (item.energies.length) {
+        <span>·</span> {{ item.energies.join(' / ') }}
+      }
+    </p>
+    <p class="price">
+      @if (item.minPrice !== null) {
+        <small>A partir de</small>
+        <strong>{{ item.minPrice | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+      } @else {
+        <small>Preço não informado</small>
+      }
+    </p>
+    <div class="card-actions">
+      <a class="primary" routerLink="/" [queryParams]="offerQuery()">Ver ofertas →</a
+      ><a
+        [href]="item.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        [attr.aria-label]="'Ver ' + item.name + ' na Liga'"
+        >Liga ↗</a
+      >
+    </div>
+  </div>
+</article>
