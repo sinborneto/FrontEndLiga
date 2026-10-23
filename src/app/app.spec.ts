@@ -52,6 +52,51 @@ describe('Busca de ofertas', () => {
   });
   afterEach(() => http.verify());
 
+  it('fecha as condições ao clicar fora ou pressionar Esc e preserva a seleção', () => {
+    app.advanced.set(true);
+    fixture.detectChanges();
+    const details = fixture.nativeElement.querySelector('.quality-select') as HTMLDetailsElement;
+    details.open = true;
+    const checkbox = details.querySelectorAll('input')[1];
+    checkbox.click();
+    expect(details.open).toBe(true);
+    expect(app.query.quality).toEqual(['NM']);
+    document.body.click();
+    expect(details.open).toBe(false);
+    expect(app.query.quality).toEqual(['NM']);
+    details.open = true;
+    details.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(details.open).toBe(false);
+    expect(app.query.quality).toEqual(['NM']);
+    expect(document.activeElement).toBe(details.querySelector('summary'));
+  });
+
+  it('permite selecionar várias condições, envia a união e limpa a seleção', () => {
+    app.advanced.set(true);
+    fixture.detectChanges();
+    const inputs = fixture.nativeElement.querySelectorAll(
+      '.quality-options input',
+    ) as NodeListOf<HTMLInputElement>;
+    expect(inputs).toHaveLength(6);
+    inputs[1].click();
+    inputs[4].click();
+    fixture.detectChanges();
+    expect(app.query.quality).toEqual(['NM', 'HP']);
+    expect(fixture.nativeElement.querySelector('summary').textContent).toContain('NM, HP');
+    app.query.card = 'Pikachu';
+    app.search();
+    const request = http.expectOne((r) => r.url === '/api/cards/prices');
+    expect(request.request.params.get('quality')).toBe('NM,HP');
+    request.flush(result([offer(10)]));
+    app.clear();
+    expect(app.query.quality).toEqual([]);
+    app.query.card = 'Pikachu';
+    app.search();
+    const allConditions = http.expectOne((r) => r.url === '/api/cards/prices');
+    expect(allConditions.request.params.has('quality')).toBe(false);
+    allConditions.flush(result([]));
+  });
+
   it('exibe a imagem da edição e o link direto da carta', () => {
     const response = result([offer(39.9)]);
     response.card.imageUrl = 'https://repositorio.sbrauble.com/cartas/articuno.jpg';

@@ -162,13 +162,36 @@
                 }
               </select></label
             >
-            <label for="quality"
-              >Condição<input
-                id="quality"
-                name="quality"
-                [(ngModel)]="query.quality"
-                placeholder="Ex.: NM"
-            /></label>
+            <div class="quality-field">
+              <span id="quality-label">Condição</span>
+              <details
+                #qualitySelect
+                class="quality-select"
+                (keydown.escape)="
+                  qualitySelect.open = false; qualitySummary.focus(); $event.stopPropagation()
+                "
+              >
+                <summary #qualitySummary aria-labelledby="quality-label quality-value">
+                  <span id="quality-value">{{
+                    query.quality.length ? query.quality.join(', ') : 'Todas as condições'
+                  }}</span
+                  ><span aria-hidden="true">⌄</span>
+                </summary>
+                <div class="quality-options" role="group" aria-label="Condições da carta">
+                  @for (quality of qualities; track quality) {
+                    <label
+                      ><input
+                        type="checkbox"
+                        [checked]="query.quality.includes(quality)"
+                        (change)="toggleQuality(quality)"
+                        [attr.aria-label]="'Condição ' + quality"
+                      /><span>{{ quality }}</span></label
+                    >
+                  }
+                  <p>Nenhuma marcada = todas</p>
+                </div>
+              </details>
+            </div>
             <label for="finish"
               >Acabamento<input
                 id="finish"

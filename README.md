@@ -29,6 +29,8 @@ Se a porta estiver ocupada, use `npm start -- --port 4201`.
 
 ## Funcionalidades
 
+- Seletor de condição com múltiplas escolhas: M, NM, SP, MP, HP e D. Nenhuma marcada inclui todas; a seleção é aplicada ao clicar em “Buscar ofertas”.
+
 - Imagem da carta identificada pela API, com prévia maior e ampliação ao clicar, além do botão “Ver carta na Liga Pokémon” ao lado do nome. A visualização ampliada fecha pelo botão, Esc ou clique fora da janela. A imagem tem descrição acessível e fallback quando ausente ou com erro. O backend deve estar atualizado para retornar `card.imageUrl` e `card.url`.
 
 - Busca por nome, edição e número de carta (`GET /api/cards/prices`).

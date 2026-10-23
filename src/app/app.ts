@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ElementRef, viewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -10,8 +10,15 @@ import { PricesService, SearchQuery, SearchResult } from './prices.service';
   imports: [FormsModule, CurrencyPipe, DatePipe],
   templateUrl: './app.html',
   styleUrl: './app.css',
+  host: { '(document:click)': 'closeQualityOutside($event)' },
 })
 export class App {
+  private readonly qualitySelect = viewChild<ElementRef<HTMLDetailsElement>>('qualitySelect');
+  closeQualityOutside(event: Event): void {
+    const select = this.qualitySelect()?.nativeElement;
+    if (select && event.target instanceof Node && !select.contains(event.target))
+      select.open = false;
+  }
   private readonly prices = inject(PricesService);
   readonly loading = signal(false);
   readonly imageFailed = signal(false);
@@ -22,6 +29,12 @@ export class App {
   readonly page = signal(1);
   readonly pageSize = 20;
   readonly advanced = signal(false);
+  readonly qualities = ['M', 'NM', 'SP', 'MP', 'HP', 'D'];
+  toggleQuality(quality: string): void {
+    this.query.quality = this.query.quality.includes(quality)
+      ? this.query.quality.filter((value) => value !== quality)
+      : [...this.query.quality, quality];
+  }
   readonly states = [
     'AC',
     'AL',
@@ -84,6 +97,8 @@ export class App {
     };
   });
   search(): void {
+    const select = this.qualitySelect()?.nativeElement;
+    if (select) select.open = false;
     if (this.loading()) return;
     this.validation.set('');
     const query = { ...this.query, card: this.query.card.trim() };
@@ -191,7 +206,7 @@ export class App {
       card: '',
       edition: '',
       number: '',
-      quality: '',
+      quality: [],
       finish: '',
       language: '',
       state: '',

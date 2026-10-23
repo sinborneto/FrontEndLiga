@@ -6,7 +6,7 @@ export interface SearchQuery {
   card: string;
   edition: string;
   number: string;
-  quality: string;
+  quality: string[];
   finish: string;
   language: string;
   state: string;
@@ -55,7 +55,7 @@ export class PricesService {
     let params = new HttpParams().set('sort', 'price_asc');
     for (const [key, value] of Object.entries(query)) {
       if (value === null || value === undefined || String(value).trim() === '') continue;
-      params = params.set(key, String(value).trim());
+      params = params.set(key, Array.isArray(value) ? value.join(',') : String(value).trim());
     }
     return this.http.get<SearchResult>('/api/cards/prices', { params }).pipe(timeout(150_000));
   }
